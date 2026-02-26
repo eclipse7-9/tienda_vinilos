@@ -1,0 +1,52 @@
+﻿using Microsoft.EntityFrameworkCore;
+using MiPrimeraAPI.Models;
+
+namespace MiPrimeraAPI.Data
+{
+    public class MediaStoreContext : DbContext
+    {
+
+        public MediaStoreContext(DbContextOptions<MediaStoreContext> Options)
+            : base(Options) { }
+
+        public DbSet<Producto> Productos { get; set; }
+        public DbSet<Artista> Artistas { get; set; }
+        public DbSet<Categoria> Categorias { get; set; }
+        public DbSet<Inventario> Inventarios { get; set; }
+        public DbSet<Cliente> Clientes { get; set; }
+        public DbSet<Venta> Ventas { get; set; }
+        public DbSet<VentaDetalle> VentaDetalles { get; set; }
+        public DbSet<Prestamo> Prestamos { get; set; }
+        public DbSet<PrestamoDetalle> PrestamoDetalles { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<ProductoArtista>()
+                .HasKey(pa => new { pa.ProductoId, pa.ArtistaId });
+
+            // Precisión para los decimales
+
+            modelBuilder.Entity<Producto>()
+                .Property(p => p.Precio)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<Venta>()
+                .Property(v => v.Total)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<VentaDetalle>()
+                .Property(vd => vd.PrecioUnitario)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<VentaDetalle>()
+                .Property(vd => vd.Subtotal)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<Prestamo>()
+                .Property(p => p.Multa)
+                .HasPrecision(18, 2);
+        }
+
+
+    }
+}
