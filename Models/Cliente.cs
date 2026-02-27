@@ -8,7 +8,8 @@
         public string Email { get; set; } = string.Empty;
         public string Telefono { get; set; } = string.Empty;
         public DateTime FechaRegistro { get; set; }
-        public int MaxPrestamosSiultaneos { get; set; }
+        public TipoCliente Tipo { get; set; } = TipoCliente.Regular;
+        public int MaxPrestamosSiultaneos { get; set; } = 3;
 
         public ICollection<Prestamo> Prestamos { get; set; } = new List<Prestamo>();
         public ICollection<Venta> Ventas { get; set; } = new List<Venta>();
