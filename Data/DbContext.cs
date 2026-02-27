@@ -9,6 +9,7 @@ namespace MiPrimeraAPI.Data
         public MediaStoreContext(DbContextOptions<MediaStoreContext> Options)
             : base(Options) { }
 
+        // DbSet para cada entidad
         public DbSet<Producto> Productos { get; set; }
         public DbSet<Artista> Artistas { get; set; }
         public DbSet<Categoria> Categorias { get; set; }
@@ -23,6 +24,7 @@ namespace MiPrimeraAPI.Data
         {
             modelBuilder.Entity<ProductoArtista>()
                 .HasKey(pa => new { pa.ProductoId, pa.ArtistaId });
+
 
             // Precisión para los decimales
 
