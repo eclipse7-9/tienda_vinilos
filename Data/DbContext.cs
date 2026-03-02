@@ -19,6 +19,7 @@ namespace MiPrimeraAPI.Data
         public DbSet<VentaDetalle> VentaDetalles { get; set; }
         public DbSet<Prestamo> Prestamos { get; set; }
         public DbSet<PrestamoDetalle> PrestamoDetalles { get; set; }
+        public DbSet<ProductoArtista> ProductoArtistas { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
