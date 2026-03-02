@@ -1,4 +1,4 @@
-﻿namespace MiPrimeraAPI.DTOs
+﻿namespace MiPrimeraAPI.DTOs.Categoria
 {
     public class CategoriaResponseDto
     {
