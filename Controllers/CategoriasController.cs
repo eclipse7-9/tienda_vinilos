@@ -96,7 +96,7 @@ public class CategoriasController : ControllerBase
         await _context.SaveChangesAsync();
         return NoContent();
     }
-
+    
     // DELETE api/categorias/1
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)

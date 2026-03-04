@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MiPrimeraAPI.Data;
-using MiPrimeraAPI.DTOs;
 using MiPrimeraAPI.DTOs.Producto;
 using MiPrimeraAPI.Models;
 

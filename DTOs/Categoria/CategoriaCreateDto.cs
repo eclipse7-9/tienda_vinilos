@@ -1,4 +1,5 @@
-﻿namespace MiPrimeraAPI.DTOs.Categoria;
+﻿
+namespace MiPrimeraAPI.DTOs.Categoria;
 
 public class CategoriaCreateDto
 {

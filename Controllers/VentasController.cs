@@ -1,0 +1,124 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using MiPrimeraAPI.Data;
+using MiPrimeraAPI.DTOs.Categoria;
+using MiPrimeraAPI.DTOs.Venta;
+using MiPrimeraAPI.Models;
+using System.Runtime.InteropServices;
+
+namespace MiPrimeraAPI.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class VentasController : ControllerBase
+{
+    private readonly MediaStoreContext _context;
+
+    public VentasController(MediaStoreContext context)
+    {
+        _context = context;
+    }
+
+    // GET
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<VentaResponseDto>>> GetAll()
+    {
+        var ventas = await _context.Ventas.ToListAsync();
+
+        var response = ventas.Select(c => new VentaResponseDto
+        {
+            Id = c.Id,
+            Fecha = c.Fecha,
+            Total = c.Total,
+            MetodoPago = c.MetodoPago,
+            Estado = c.Estado,
+
+            ClienteId = c.ClienteId
+        });
+        return Ok(response);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<VentaResponseDto>> GetById(int id)
+    {
+        var venta = await _context.Ventas
+            .Include(v => v.Cliente)
+            .Include(v => v.Detalles)
+                .ThenInclude(d => d.Producto)
+            .FirstOrDefaultAsync(v => v.Id == id);
+
+        if (venta == null) return NotFound();
+
+        return Ok(new VentaResponseDto
+        {
+            Id = venta.Id,
+            Fecha = venta.Fecha,
+            Total = venta.Total,
+            MetodoPago = venta.MetodoPago,
+            Estado = venta.Estado,
+            ClienteId = venta.ClienteId,
+
+            Detalles = venta.Detalles.Select(d => new VentaDetalleResponseDto
+            {
+                ProductoId = d.ProductoId,
+                TituloProducto = d.Producto.Titulo,
+                Cantidad = d.Cantidad,
+                PrecioUnitario = d.PrecioUnitario,
+                Subtotal = d.Subtotal
+            }).ToList()
+        });
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<VentaResponseDto>> Create(VentaCreateDto dto)
+    {
+        var cliente = await _context.Clientes.FindAsync(dto.ClienteId);
+        if (cliente is null) return NotFound("Cliente no encontrado");
+
+        var venta = new Venta
+        {
+            ClienteId = dto.ClienteId,
+            MetodoPago = dto.MetodoPago,
+            Estado = "Pendiente",
+            Fecha = DateTime.UtcNow,
+            Total = 0
+        };
+        _context.Ventas.Add(venta);
+        await _context.SaveChangesAsync();
+
+        foreach (var detalleDto in dto.Detalles)
+        {
+            var producto = await _context.Productos.FindAsync(detalleDto.ProductoId);
+            if (producto is null) return NotFound($"Producto no encontrado/producto agotado");
+
+            var inventario = await _context.Inventarios.
+                FirstOrDefaultAsync(i => i.ProductoId == detalleDto.ProductoId);
+            if (inventario is null || inventario.StockDisponible < detalleDto.Cantidad)
+                return BadRequest("Stock insuficiente");
+
+            //subtotal
+
+            var subtotal = detalleDto.Cantidad * producto.Precio;
+
+            var detalle = new VentaDetalle
+            {
+                VentaId = venta.Id,
+                ProductoId = detalleDto.ProductoId,
+                Cantidad = detalleDto.Cantidad,
+                PrecioUnitario = producto.Precio,
+                Subtotal = subtotal
+            };
+            _context.VentasDetalle.Add(detalle);
+
+            inventario.StockDisponible -= detalleDto.Cantidad;
+            inventario.StockTotal -= detalleDto.Cantidad;
+        }
+        venta.Total = venta.Detalles.Sum(d => d.Subtotal);
+
+        await _context.SaveChangesAsync();
+        return CreatedAtAction(nameof(GetById), new { id = venta.Id }, null);
+    }
+
+}
+    
+
