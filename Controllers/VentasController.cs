@@ -84,7 +84,10 @@ public class VentasController : ControllerBase
             Total = 0
         };
         _context.Ventas.Add(venta);
+
         await _context.SaveChangesAsync();
+
+        decimal total = 0;
 
         foreach (var detalleDto in dto.Detalles)
         {
@@ -112,8 +115,9 @@ public class VentasController : ControllerBase
 
             inventario.StockDisponible -= detalleDto.Cantidad;
             inventario.StockTotal -= detalleDto.Cantidad;
+            total += subtotal;  
         }
-        venta.Total = venta.Detalles.Sum(d => d.Subtotal);
+        venta.Total = total;
 
         await _context.SaveChangesAsync();
         return CreatedAtAction(nameof(GetById), new { id = venta.Id }, null);
