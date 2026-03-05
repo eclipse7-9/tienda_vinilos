@@ -76,46 +76,93 @@ public class PrestamosController : ControllerBase
         var cliente = await _context.Clientes.FindAsync(dto.ClienteId);
         if (cliente is null) return NotFound("Cliente no encontrado");
 
+        var limite = await _context.Prestamos.Where(p => p.ClienteId == dto.ClienteId && p.Estado == EstadoPrestamo.Activo).CountAsync();
+        if (limite >= 3) return BadRequest("El cliente tiene el limite de prestamos activos alcanzado");
+
         var prestamo = new Prestamo
         {
             ClienteId = dto.ClienteId,
-            Estado = dto.Estado,
+            Estado = EstadoPrestamo.Activo,
             FechaPrestamo = DateTime.Now,
+            FechaDevolucionEsperada = DateTime.Now.AddDays(7),
             Multa = null,
         };
-        _context.Ventas.Add(prestamo);
+        _context.Prestamos.Add(prestamo);
         await _context.SaveChangesAsync();
-        var fechaDevolucionEsperada = DateTime.Now.AddDays(7);
 
         foreach (var detalleDto in dto.Detalles)
         {
-            prestamo.FechaDevolucionEsperada = fechaDevolucionEsperada;
-            if (prestamo.FechaDevolucionReal > fechaDevolucionEsperada) return BadRequest("La fecha de devolución real no puede ser antes de la fecha de préstamo");
-
-            var cantidad = await _context.PrestamoDetalles.Where(i => i.ProductoId == detalleDto.ProductoId).Select(i => i.StockDisponible).FirstOrDefaultAsync();
-
-            var  producto = await _context.Productos.FindAsync(detalleDto.ProductoId);
+            var producto = await _context.Productos.
+                Include(p => p.Categoria)
+                .FirstOrDefaultAsync(p => p.Id == detalleDto.ProductoId);
             if (producto is null) return NotFound($"Producto no encontrado para el prestamo");
 
-            var inventario = await _context.Inventarios.
-                FirstOrDefaultAsync(i => i.ProductoId == detalleDto.ProductoId);
-            if (inventario is null) return BadRequest($"No hay stock disponible para el producto {producto.Titulo}");
+            var cantidad = await _context.Inventarios
+                .FirstOrDefaultAsync(i => i.ProductoId == detalleDto.ProductoId);
 
-            
+            if (cantidad is null || cantidad.StockDisponiblePrestamo <= 0)
+                return BadRequest($"No hay stock disponible para préstamo del producto: {producto.Titulo}");
+
+            if (!producto.Categoria.PermitePrestamo)
+                return BadRequest($"El producto {producto.Titulo} no se puede prestar porque su categoría no lo permite");
+
+
+            cantidad.StockDisponiblePrestamo -= 1;
+            cantidad.StockEnPrestamo += 1;
 
             var detalle = new PrestamoDetalle
             {
                 PrestamoId = prestamo.Id,
                 ProductoId = detalleDto.ProductoId,
-                Observaciones = detalleDto.Observaciones
+                Observaciones = null
             };
             _context.PrestamoDetalles.Add(detalle);
 
-            
+
         }
         await _context.SaveChangesAsync();
         return CreatedAtAction(nameof(GetById), new { id = prestamo.Id }, null);
-
     }
 
+    [HttpPut("{id}/devolver")]
+    public async Task<IActionResult> Devolver(int id)
+    {
+        var prestamo = await _context.Prestamos.FindAsync(id);
+            if (prestamo is null) return BadRequest();
+
+        prestamo.FechaDevolucionReal = DateTime.Now;
+        if (prestamo.FechaDevolucionReal > prestamo.FechaDevolucionEsperada)
+        {
+            var atraso = (prestamo.FechaDevolucionReal.Value - prestamo.FechaDevolucionEsperada).Days;
+
+            prestamo.Multa = atraso * 10000;
+        }
+        else
+        {
+            prestamo.Multa = 0;
+        }
+            
+        prestamo.Estado = EstadoPrestamo.Devuelto;
+        var detalles = await _context.PrestamoDetalles.Where(d => d.PrestamoId == id).ToListAsync();
+
+        foreach (var detalle in detalles)
+        {
+            var cantidad = await _context.Inventarios
+                  .FirstOrDefaultAsync(i => i.ProductoId == detalle.ProductoId);
+
+            if (cantidad is not null)
+                {
+                cantidad.StockDisponiblePrestamo += 1;
+                cantidad.StockEnPrestamo -= 1;
+            }
+        }
+       
+        await _context.SaveChangesAsync();
+        return NoContent();
+    }
+
+
+
 }
+
+

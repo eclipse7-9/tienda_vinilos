@@ -44,7 +44,7 @@ public class VentasController : ControllerBase
         var venta = await _context.Ventas
             .Include(v => v.Cliente)
             .Include(v => v.Detalles)
-                .ThenInclude(d => d.Producto)
+            .ThenInclude(d => d.Producto)
             .FirstOrDefaultAsync(v => v.Id == id);
 
         if (venta == null) return NotFound();
