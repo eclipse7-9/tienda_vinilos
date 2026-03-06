@@ -10,8 +10,6 @@ using MiPrimeraAPI.Models;
 namespace MiPrimeraAPI.Controllers;
 
 //Atributos del controlador
-[Authorize (Roles ="Admin")]
-
 [ApiController]
 [Route("api/[controller]")]
 public class CategoriasController : ControllerBase
@@ -25,6 +23,7 @@ public class CategoriasController : ControllerBase
     }
 
     // GET api/categorias
+    [AllowAnonymous]
     [HttpGet]
     public async Task<ActionResult<IEnumerable<CategoriaResponseDto>>> GetAll()
     {
@@ -44,6 +43,7 @@ public class CategoriasController : ControllerBase
     }
 
     // GET api/categorias/1
+    [AllowAnonymous]
     [HttpGet("{id}")]
     public async Task<ActionResult<CategoriaResponseDto>> GetById(int id)
     {
@@ -60,6 +60,7 @@ public class CategoriasController : ControllerBase
     }
 
     // POST api/categorias
+    [Authorize(Roles = "Admin,Empleado")]
     [HttpPost]
     public async Task<ActionResult<CategoriaResponseDto>> Create(CategoriaCreateDto dto)
     {
@@ -84,6 +85,7 @@ public class CategoriasController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = categoria.Id }, response);
     }
 
+    [Authorize(Roles = "Admin,Empleado")]
     // PUT api/categorias/1
     [HttpPut("{id}")]
     // Se pide el id en la ruta y el DTO en el cuerpo de la solicitud
@@ -99,7 +101,8 @@ public class CategoriasController : ControllerBase
         await _context.SaveChangesAsync();
         return NoContent();
     }
-    
+
+    [Authorize(Roles = "Admin,Empleado")]
     // DELETE api/categorias/1
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)

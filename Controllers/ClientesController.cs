@@ -23,6 +23,7 @@ public class ClientesController : ControllerBase
     }
 
     // GET api/clientes
+    [Authorize(Roles ="Admin,Empleado")]
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ClienteResponseDto>>> GetAll()
     {
@@ -44,6 +45,7 @@ public class ClientesController : ControllerBase
         return Ok(response);
     }
 
+    [Authorize(Roles = "Admin,Empleado")]
     // GET api/clientes/1
     [HttpGet("{id}")]
     public async Task<ActionResult<ClienteResponseDto>> GetById(int id)
@@ -63,36 +65,10 @@ public class ClientesController : ControllerBase
         });
     }
 
-    // POST api/clientes
-    [HttpPost]
-    public async Task<ActionResult<ClienteResponseDto>> Create(ClienteCreateDto dto)
-    {
-        var cliente = new Cliente
-        {
-            Nombre = dto.Nombre,
-            Apellido = dto.Apellido,
-            Email = dto.Email,
-            Telefono = dto.Telefono,
-            FechaRegistro = DateTime.UtcNow
-        };
+    //AuthController maneja el registro de clientes, por lo que no se necesita un endpoint POST aquí
 
-        _context.Clientes.Add(cliente);
-        await _context.SaveChangesAsync();
 
-        var response = new ClienteResponseDto
-        {
-            Id = cliente.Id,
-            Nombre = cliente.Nombre,
-            Apellido = cliente.Apellido,
-            Email = cliente.Email,
-            Telefono = cliente.Telefono,
-            MaxPrestamosSiultaneos = cliente.MaxPrestamosSiultaneos,
-            FechaRegistro = cliente.FechaRegistro
-        };
-
-        return CreatedAtAction(nameof(GetById), new { id = cliente.Id }, response);
-    }
-
+    [Authorize(Roles = "Admin,Empleado")]
     // PUT api/clientes/1
     [HttpPut("{id}")]
     // Se pide el id en la ruta y el DTO en el cuerpo de la solicitud
@@ -113,6 +89,7 @@ public class ClientesController : ControllerBase
         return NoContent();
     }
 
+    [Authorize(Roles ="Admin,Empleado")]
     // DELETE api/clientes/1
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)

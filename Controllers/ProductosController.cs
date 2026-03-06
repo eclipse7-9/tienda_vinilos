@@ -18,6 +18,7 @@ public class ProductosController : ControllerBase
         _context = Context;
     }
 
+    [AllowAnonymous]
     [HttpGet]
 
     public async Task<ActionResult<IEnumerable<ProductoResponseDto>>> GetAll()
@@ -37,6 +38,7 @@ public class ProductosController : ControllerBase
         return Ok(response);
     }
 
+    [AllowAnonymous]
     [HttpGet("{id}")]
 
     public async Task<ActionResult<ProductoResponseDto>> GetById(int id)
@@ -58,7 +60,7 @@ public class ProductosController : ControllerBase
     }
 
 
-    [Authorize(Roles = "Admin, Empleado")]
+    [Authorize(Roles = "Admin,Empleado")]
     [HttpPost]
     public async Task<ActionResult<ProductoResponseDto>> Create(ProductoCreateDto dto)
     {
@@ -109,7 +111,7 @@ public class ProductosController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = producto.Id }, response);
     }
 
-    [Authorize(Roles = "Admin, Empleado")]
+    [Authorize(Roles = "Admin,Empleado")]
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, ProductoCreateDto dto)
     {
