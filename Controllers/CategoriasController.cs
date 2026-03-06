@@ -1,4 +1,5 @@
 ﻿//dependencias
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MiPrimeraAPI.Data;
@@ -9,6 +10,8 @@ using MiPrimeraAPI.Models;
 namespace MiPrimeraAPI.Controllers;
 
 //Atributos del controlador
+[Authorize (Roles ="Admin")]
+
 [ApiController]
 [Route("api/[controller]")]
 public class CategoriasController : ControllerBase

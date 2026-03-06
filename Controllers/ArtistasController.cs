@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MiPrimeraAPI.Data;
 using MiPrimeraAPI.DTOs.Artista;
@@ -8,6 +9,8 @@ using MiPrimeraAPI.Models;
 namespace MiPrimeraAPI.Controllers;
 
 //Atributos del controlador
+[Authorize]
+
 [ApiController]
 [Route("api/[controller]")]
 public class ArtistasController : ControllerBase

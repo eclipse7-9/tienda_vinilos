@@ -1,10 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MiPrimeraAPI.Data;
 using MiPrimeraAPI.DTOs.Producto;
 using MiPrimeraAPI.Models;
 
 namespace MiPrimeraAPI.Controllers;
+
 
 [ApiController]
 [Route("api/[controller]")]
@@ -55,6 +57,8 @@ public class ProductosController : ControllerBase
 
     }
 
+
+    [Authorize(Roles = "Admin, Empleado")]
     [HttpPost]
     public async Task<ActionResult<ProductoResponseDto>> Create(ProductoCreateDto dto)
     {
@@ -105,6 +109,7 @@ public class ProductosController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = producto.Id }, response);
     }
 
+    [Authorize(Roles = "Admin, Empleado")]
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, ProductoCreateDto dto)
     {
@@ -133,6 +138,7 @@ public class ProductosController : ControllerBase
         return NoContent();
     }
 
+    [Authorize(Roles = "Admin, Empleado")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {

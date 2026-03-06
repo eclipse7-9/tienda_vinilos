@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MiPrimeraAPI.Data;
 using MiPrimeraAPI.DTOs.Prestamo;
@@ -8,6 +9,7 @@ using System.Xml;
 
 namespace MiPrimeraAPI.Controllers;
 
+[Authorize]
 
 [ApiController]
 [Route("api/[controller]")]

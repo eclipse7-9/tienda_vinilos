@@ -1,6 +1,7 @@
-﻿namespace MiPrimeraAPI.DTOs.Auth
+﻿namespace MiPrimeraAPI.DTOs.Auth;
+
+public class LoginDto
 {
-    public class AuthContext
-    {
-    }
+    public string Email { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
 }
