@@ -170,5 +170,3 @@ public class PrestamosController : ControllerBase
 
 
 }
-
-

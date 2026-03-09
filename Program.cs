@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using MiPrimeraAPI.Data;
+using MiPrimeraAPI.Middleware;
 using MiPrimeraAPI.Services;
 using System.Text;
 
@@ -72,6 +73,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 var app = builder.Build();
 // Pipeline
+
+//middleware
+app.UseMiddleware<ErrorMiddleware>();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
