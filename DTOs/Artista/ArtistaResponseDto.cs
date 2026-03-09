@@ -1,4 +1,6 @@
-﻿namespace MiPrimeraAPI.DTOs.Artista
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace MiPrimeraAPI.DTOs.Artista
 {
     public class ArtistaResponseDto
     {

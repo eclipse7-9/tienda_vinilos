@@ -38,7 +38,7 @@ public class AuthController : ControllerBase
             {
             return BadRequest("El email ya está registrado");
         }
-
+        
         var hash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
 
         var nuevoUsuario = new Usuario
