@@ -9,7 +9,6 @@ using MiPrimeraAPI.Services;
 
 namespace MiPrimeraAPI.Controllers;
 
-[Authorize]
 
 [ApiController]
 [Route("api/[controller]")]
@@ -26,9 +25,9 @@ public class AuthController : ControllerBase
         _tokenService = tokenService;
     }
 
+
     [HttpPost("register")]
 
-    [AllowAnonymous]
     public async Task<ActionResult<AuthResponseDto>> Register(RegisterDto dto)
 
     {

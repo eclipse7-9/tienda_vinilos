@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MiPrimeraAPI.Data;
 using MiPrimeraAPI.DTOs.Categoria;
@@ -20,6 +21,7 @@ public class VentasController : ControllerBase
     }
 
     // GET
+    [Authorize(Roles = "Admin,Empleado")]
     [HttpGet]
     public async Task<ActionResult<IEnumerable<VentaResponseDto>>> GetAll()
     {
@@ -38,6 +40,7 @@ public class VentasController : ControllerBase
         return Ok(response);
     }
 
+    [Authorize(Roles = "Admin,Empleado")]
     [HttpGet("{id}")]
     public async Task<ActionResult<VentaResponseDto>> GetById(int id)
     {
@@ -69,6 +72,7 @@ public class VentasController : ControllerBase
         });
     }
 
+    [Authorize]
     [HttpPost]
     public async Task<ActionResult<VentaResponseDto>> Create(VentaCreateDto dto)
     {

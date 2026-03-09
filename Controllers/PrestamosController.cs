@@ -21,6 +21,7 @@ public class PrestamosController : ControllerBase
         _context = context;
     }
 
+    [Authorize(Roles = "Admin,Empleado")]
     [HttpGet]
     public async Task<ActionResult<IEnumerable<PrestamoResponseDto>>> GetAll()
     {
@@ -41,6 +42,7 @@ public class PrestamosController : ControllerBase
 
     }
 
+    [Authorize(Roles = "Admin,Empleado")]
     [HttpGet("{id}")]
     public async Task<ActionResult<PrestamoResponseDto>> GetById(int id)
 
@@ -72,6 +74,7 @@ public class PrestamosController : ControllerBase
         });
     }
 
+    [Authorize]
     [HttpPost]
     public async Task<ActionResult<PrestamoResponseDto>> Create(PrestamoCreateDto dto)
     {
@@ -126,6 +129,7 @@ public class PrestamosController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = prestamo.Id }, null);
     }
 
+    [Authorize(Roles = "Admin,Empleado")]
     [HttpPut("{id}/devolver")]
     public async Task<IActionResult> Devolver(int id)
     {

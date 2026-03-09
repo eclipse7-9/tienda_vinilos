@@ -9,7 +9,6 @@ using MiPrimeraAPI.Models;
 namespace MiPrimeraAPI.Controllers;
 
 //Atributos del controlador
-[Authorize]
 
 [ApiController]
 [Route("api/[controller]")]
@@ -23,6 +22,8 @@ public class ArtistasController : ControllerBase
         _context = context;
     }
     // GET api/artistas
+
+    [AllowAnonymous]
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ArtistaResponseDto>>> GetAll()
     {
@@ -37,6 +38,7 @@ public class ArtistasController : ControllerBase
         return Ok(response);
     }
 
+    [AllowAnonymous]
     // GET api/artistas/1
     [HttpGet("{id}")]
     public async Task<ActionResult<ArtistaResponseDto>> GetById(int id)
@@ -53,6 +55,7 @@ public class ArtistasController : ControllerBase
         });
     }
 
+    [Authorize(Roles ="Admin,Empleado")]
     // POST api/artistas
     [HttpPost]
     public async Task<ActionResult<ArtistaResponseDto>> Create(ArtistaCreateDto dto)
@@ -78,6 +81,7 @@ public class ArtistasController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = artista.Id }, response);
     }
 
+    [Authorize(Roles = "Admin,Empleado")]
     // PUT api/artistas/1
     [HttpPut("{id}")]
     // Se pide el id en la ruta y el DTO en el cuerpo de la solicitud
@@ -94,6 +98,7 @@ public class ArtistasController : ControllerBase
         return NoContent();
     }
 
+    [Authorize(Roles = "Admin,Empleado")]
     // DELETE api/artistas/1
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
