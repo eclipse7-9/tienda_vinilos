@@ -45,7 +45,7 @@ builder.Services.AddSwaggerGen(c =>
 
 // DbContext — conexión a LocalDB
 builder.Services.AddDbContext<MediaStoreContext>(options =>
-    options.UseSqlServer(
+    options.UseNpgsql(
         builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // token
