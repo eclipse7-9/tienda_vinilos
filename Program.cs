@@ -68,6 +68,16 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("FrontendPolicy", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 
 
 
@@ -75,6 +85,7 @@ var app = builder.Build();
 // Pipeline
 
 //middleware
+app.UseCors("FrontendPolicy");
 app.UseMiddleware<ErrorMiddleware>();
 
 if (app.Environment.IsDevelopment() ||
