@@ -64,13 +64,16 @@ public class AuthController : ControllerBase
         _context.Clientes.Add(Cliente);
         await _context.SaveChangesAsync();
 
+        var usuarioConCliente = await _context.Usuarios
+       .Include(u => u.Cliente)
+       .FirstOrDefaultAsync(u => u.Id == nuevoUsuario.Id);
+
         var response = new AuthResponseDto
         {
             Email = nuevoUsuario.Email,
             Rol = RolUsuario.Cliente.ToString(),
             Token = _tokenService.GenerarToken(nuevoUsuario),
-            ClienteId = nuevoUsuario.Cliente?.Id ?? 0
-
+            ClienteId = usuarioConCliente?.Cliente?.Id ?? 0
         };
 
         return Ok(response);
@@ -81,6 +84,10 @@ public class AuthController : ControllerBase
     [AllowAnonymous]
     public async Task<ActionResult<AuthResponseDto>> Login(LoginDto dto)
     {
+        var usuario = await _context.Usuarios
+        .Include(u => u.Cliente)
+        .FirstOrDefaultAsync(e => e.Email == dto.Email);
+
         var existe = await _context.Usuarios
             .FirstOrDefaultAsync(e => e.Email == dto.Email);
         if (existe == null) return BadRequest("El email no está registrado en la página");
@@ -93,7 +100,8 @@ public class AuthController : ControllerBase
         {
             Email = dto.Email,
             Rol = RolUsuario.Cliente.ToString(),
-            Token = _tokenService.GenerarToken(existe)
+            Token = _tokenService.GenerarToken(existe),
+            ClienteId = usuario.Cliente?.Id ?? 0
         }; return Ok(response);
             
     }
