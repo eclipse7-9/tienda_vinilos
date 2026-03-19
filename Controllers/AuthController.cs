@@ -68,7 +68,9 @@ public class AuthController : ControllerBase
         {
             Email = nuevoUsuario.Email,
             Rol = RolUsuario.Cliente.ToString(),
-            Token = _tokenService.GenerarToken(nuevoUsuario)
+            Token = _tokenService.GenerarToken(nuevoUsuario),
+            ClienteId = nuevoUsuario.Cliente?.Id ?? 0
+
         };
 
         return Ok(response);

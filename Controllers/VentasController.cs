@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using Microsoft.EntityFrameworkCore;
 using MiPrimeraAPI.Data;
 using MiPrimeraAPI.DTOs.Categoria;
@@ -127,6 +128,20 @@ public class VentasController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = venta.Id }, null);
     }
 
-}
-    
+    [Authorize]
+    [HttpGet("cliente/{clienteId}")]
 
+    public async Task<IActionResult> GetByCliente(int clienteId)
+    {
+        var ventas = await _context.Ventas
+            .Include(v => v.Detalles)
+                .ThenInclude(d => d.Producto)
+                .Where (v => v.ClienteId == clienteId)
+                .OrderByDescending(v => v.Fecha)
+                .ToListAsync();
+
+        return Ok(ventas);
+    }
+
+
+}
