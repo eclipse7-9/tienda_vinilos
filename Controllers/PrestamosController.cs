@@ -75,6 +75,19 @@ public class PrestamosController : ControllerBase
     }
 
     [Authorize]
+    [HttpGet("cliente/{clienteId}")]
+    public async Task<IActionResult> GetByCliente(int clienteId)
+    {
+        var prestamos = await _context.Prestamos
+            .Include(p => p.Detalles)
+                .ThenInclude(d => d.Producto)
+            .Where(p => p.ClienteId == clienteId)
+            .OrderByDescending(p => p.FechaPrestamo)
+            .ToListAsync();
+        return Ok(prestamos);
+    }
+
+    [Authorize]
     [HttpPost]
     public async Task<ActionResult<PrestamoResponseDto>> Create(PrestamoCreateDto dto)
     {
