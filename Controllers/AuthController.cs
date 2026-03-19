@@ -101,7 +101,8 @@ public class AuthController : ControllerBase
             Email = dto.Email,
             Rol = RolUsuario.Cliente.ToString(),
             Token = _tokenService.GenerarToken(existe),
-            ClienteId = usuario.Cliente?.Id ?? 0
+            ClienteId = usuario.Cliente?.Id ?? 0,
+            Id = usuario.Id
         }; return Ok(response);
             
     }
