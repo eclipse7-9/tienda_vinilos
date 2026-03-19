@@ -67,6 +67,34 @@ public class ClientesController : ControllerBase
 
     //AuthController maneja el registro de clientes, por lo que no se necesita un endpoint POST aquí
 
+    //GET del perfil del cliente autenticado
+
+    [Authorize]
+    [HttpGet("perfil/{usuarioId}")]
+    public async Task<IActionResult> Getperfil(int usuarioId)
+    {
+        var cliente = await _context.Clientes
+            .FirstOrDefaultAsync(c => c.UsuarioId == usuarioId);
+        if (cliente == null) return NotFound();
+        return Ok(cliente); 
+    }
+
+    [Authorize]
+    [HttpPut("perfil/{id}")]
+    public async Task<IActionResult> UpdatePerfil(int id, ClienteCreateDto dto)
+    {
+        var cliente = await _context.Clientes.FindAsync(id);
+        if (cliente == null) return NotFound();
+        
+        cliente.Nombre = dto.Nombre;
+        cliente.Apellido = dto.Apellido;
+        cliente.Telefono = dto.Telefono;
+        cliente.Email = dto.Email;
+
+        await _context.SaveChangesAsync();
+        return NoContent();
+    } 
+
 
     [Authorize(Roles = "Admin,Empleado")]
     // PUT api/clientes/1
