@@ -22,6 +22,8 @@ namespace MiPrimeraAPI.Data
         public DbSet<ProductoArtista> ProductoArtistas { get; set; }
         public DbSet<VentaDetalle> VentasDetalle { get; set; }
         public DbSet<Usuario> Usuarios { get; set; }
+        public DbSet<Direccion> Direcciones { get; set; }
+        public DbSet<MetodoPago> MetodoPago { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

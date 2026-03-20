@@ -18,5 +18,9 @@
         //relación con usuario
         public int UsuarioId { get; set; }
         public Usuario Usuario { get; set; } = null!;
+
+        //relación con direcciones y métodos de pago
+        public ICollection<Direccion> Direcciones { get; set; } = new List<Direccion>();
+        public ICollection<MetodoPago> MetodosPago { get; set; } = new List<MetodoPago>();
     }
 }
