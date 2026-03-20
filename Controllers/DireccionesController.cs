@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MiPrimeraAPI.Data;
 using MiPrimeraAPI.Models;
+using MiPrimeraAPI.DTOs.Direccion;
 
 namespace MiPrimeraAPI.Controllers;
 
@@ -24,9 +25,20 @@ public class DireccionesController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create(Direccion dto)
+    public async Task<IActionResult> Create(DireccionCreateDto dto)
     {
-        // Si es principal, quitar principal de las demás
+        var direccion = new Direccion
+        {
+            Nombre = dto.Nombre,
+            Calle = dto.Calle,
+            Ciudad = dto.Ciudad,
+            Departamento = dto.Departamento,
+            CodigoPostal = dto.CodigoPostal,
+            Referencia = dto.Referencia,
+            EsPrincipal = dto.EsPrincipal,
+            ClienteId = dto.ClienteId,
+        };
+
         if (dto.EsPrincipal)
         {
             var otras = await _context.Direcciones
@@ -34,13 +46,14 @@ public class DireccionesController : ControllerBase
                 .ToListAsync();
             otras.ForEach(d => d.EsPrincipal = false);
         }
-        _context.Direcciones.Add(dto);
+
+        _context.Direcciones.Add(direccion);
         await _context.SaveChangesAsync();
-        return Ok(dto);
+        return Ok(direccion);
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, Direccion dto)
+    public async Task<IActionResult> Update(int id, DireccionCreateDto dto)
     {
         var direccion = await _context.Direcciones.FindAsync(id);
         if (direccion == null) return NotFound();
