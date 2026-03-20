@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MiPrimeraAPI.Data;
+using MiPrimeraAPI.DTOs.MetodoPago;
 using MiPrimeraAPI.Models;
 
 namespace MiPrimeraAPI.Controllers;
@@ -24,8 +25,18 @@ public class MetodosPagoController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create(MetodoPago dto)
+    public async Task<IActionResult> Create(MetodoPagoCreateDto dto)
     {
+        var metodo = new Models.MetodoPago
+        {
+            Tipo = dto.Tipo,
+            NombreTitular = dto.NombreTitular,
+            UltimosDigitos = dto.UltimosDigitos,
+            Banco = dto.Banco,
+            EsPrincipal = dto.EsPrincipal,
+            ClienteId = dto.ClienteId,
+        };
+
         if (dto.EsPrincipal)
         {
             var otros = await _context.MetodoPago
@@ -33,13 +44,14 @@ public class MetodosPagoController : ControllerBase
                 .ToListAsync();
             otros.ForEach(m => m.EsPrincipal = false);
         }
-        _context.MetodoPago.Add(dto);
+
+        _context.MetodoPago.Add(metodo);
         await _context.SaveChangesAsync();
-        return Ok(dto);
+        return Ok(metodo);
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, MetodoPago dto)
+    public async Task<IActionResult> Update(int id, MetodoPagoCreateDto dto)
     {
         var metodo = await _context.MetodoPago.FindAsync(id);
         if (metodo == null) return NotFound();
