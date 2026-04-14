@@ -2,4 +2,5 @@ wip
 
 
 -backend preventivo completado.
--Backend desplegado en Render y base de datos en Neon (PostgreSQL).
+-Front funcionando en una estructura de bajo acoplamiento.
+-Funciones de automatización en proceso.
