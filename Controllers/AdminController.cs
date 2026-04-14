@@ -51,4 +51,16 @@ public class AdminController : ControllerBase
             ventasRecientes,
         });
     }
+
+    [Authorize(Roles = "Admin")]
+    [HttpGet("health-metrics")]
+public IActionResult GetTechnicalMetrics()
+{
+    // Aquí podrías integrar los datos que OpenTelemetry está recolectando
+    return Ok(new {
+        dbStatus = "Online",
+        lastSlowQueryMs = 450, // Dato que vendría de tu Interceptor
+        activeConnections = 12
+    });
+}
 }

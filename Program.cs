@@ -5,8 +5,14 @@ using MiPrimeraAPI.Data;
 using MiPrimeraAPI.Middleware;
 using MiPrimeraAPI.Services;
 using System.Text;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using Npgsql;
+
 
 var builder = WebApplication.CreateBuilder(args);
+
 
 // Controladores
 builder.Services.AddControllers();
@@ -43,10 +49,12 @@ builder.Services.AddSwaggerGen(c =>
     });
    });
 
-// DbContext — conexión a LocalDB
+// DbContext  conexin a LocalDB
 builder.Services.AddDbContext<MediaStoreContext>(options =>
-    options.UseNpgsql(
-        builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
+    options.AddInterceptors(new PerformanceInterceptor());
+});
 
 // token
 builder.Services.AddScoped<TokenService>();
@@ -78,8 +86,15 @@ builder.Services.AddCors(options =>
     });
 });
 
-
-
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing => tracing
+        .AddSource("MiPrimeraAPI")
+        .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("MiPrimeraAPI"))
+        .AddAspNetCoreInstrumentation() 
+        // Cambiamos SqlClient por Npgsql para que coincida con tu DB
+        .AddSource("Npgsql") 
+        // AÃ±adimos esto para poder ver los resultados en la consola de Cloud Shell
+        .AddConsoleExporter());
 
 var app = builder.Build();
 // Pipeline
