@@ -5,7 +5,6 @@ namespace MiPrimeraAPI.Data
 {
     public class MediaStoreContext : DbContext
     {
-
         public MediaStoreContext(DbContextOptions<MediaStoreContext> Options)
             : base(Options) { }
 
@@ -52,8 +51,6 @@ namespace MiPrimeraAPI.Data
             modelBuilder.Entity<Prestamo>()
                 .Property(p => p.Multa)
                 .HasPrecision(18, 2);
-        }
-
-
-    }
+  }
+ }
 }
