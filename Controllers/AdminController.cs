@@ -58,30 +58,71 @@ public class AdminController : ControllerBase
     [HttpGet("db-stats")]
     public async Task<IActionResult> GetDbStats()
     {
-        var stopwatch = Stopwatch.StartNew();
         try
         {
-            // Ejecutamos una consulta simple para medir latencia real
-            await _context.Database.ExecuteSqlRawAsync("SELECT 1");
-            stopwatch.Stop();
-            var latency = stopwatch.ElapsedMilliseconds;
+            var now = DateTime.UtcNow;
+            var windowStart = now.AddMinutes(-2); // Últimos 2 minutos
 
-            // Generamos datos para la gráfica de Recharts usando la latencia real
-            var stats = new List<object>
+            var stats = await _context.SqlLogs
+                .Where(l => l.ExecutedAt > windowStart)
+                .ToListAsync();
+
+            var groupedStats = stats
+                .GroupBy(l => new { 
+                    Hour = l.ExecutedAt.Hour, 
+                    Minute = l.ExecutedAt.Minute, 
+                    Second = (l.ExecutedAt.Second / 10) * 10 
+                })
+                .Select(g => new {
+                    time = $"{g.Key.Hour:D2}:{g.Key.Minute:D2}:{g.Key.Second:D2}",
+                    latency = Math.Round(g.Average(l => l.DurationMs), 2)
+                })
+                .OrderBy(x => x.time)
+                .ToList();
+
+            // Si no hay datos, devolvemos al menos el punto actual con 0
+            if (!groupedStats.Any())
             {
-                new { time = DateTime.Now.AddSeconds(-50).ToString("HH:mm:ss"), latency = Math.Max(5, latency + new Random().Next(-5, 5)) },
-                new { time = DateTime.Now.AddSeconds(-40).ToString("HH:mm:ss"), latency = Math.Max(5, latency + new Random().Next(-5, 5)) },
-                new { time = DateTime.Now.AddSeconds(-30).ToString("HH:mm:ss"), latency = Math.Max(5, latency + new Random().Next(-5, 5)) },
-                new { time = DateTime.Now.AddSeconds(-20).ToString("HH:mm:ss"), latency = Math.Max(5, latency + new Random().Next(-5, 5)) },
-                new { time = DateTime.Now.AddSeconds(-10).ToString("HH:mm:ss"), latency = Math.Max(5, latency + new Random().Next(-5, 5)) },
-                new { time = DateTime.Now.ToString("HH:mm:ss"), latency = latency }
-            };
+                groupedStats.Add(new { time = now.ToString("HH:mm:ss"), latency = 0.0 });
+            }
 
-            return Ok(stats);
+            return Ok(groupedStats);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { error = "DB connection error", details = ex.Message });
+            return StatusCode(500, new { error = "Error fetching DB stats", details = ex.Message });
+        }
+    }
+
+    [AllowAnonymous]
+    [HttpGet("sql-logs")]
+    public async Task<IActionResult> GetSqlLogs([FromQuery] string time)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(time)) return BadRequest("Time is required");
+
+            var parts = time.Split(':');
+            if (parts.Length != 3) return BadRequest("Invalid time format (HH:mm:ss)");
+
+            var now = DateTime.UtcNow;
+            var targetTime = new DateTime(now.Year, now.Month, now.Day, 
+                int.Parse(parts[0]), int.Parse(parts[1]), int.Parse(parts[2]), DateTimeKind.Utc);
+            
+            var startTime = targetTime.AddSeconds(-5);
+            var endTime = targetTime.AddSeconds(15);
+
+            var logs = await _context.SqlLogs
+                .Where(l => l.ExecutedAt >= startTime && l.ExecutedAt <= endTime)
+                .OrderByDescending(l => l.ExecutedAt)
+                .Take(50)
+                .ToListAsync();
+
+            return Ok(logs);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Error fetching SQL logs", details = ex.Message });
         }
     }
 }

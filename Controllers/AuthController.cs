@@ -80,19 +80,16 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
-
     [AllowAnonymous]
     public async Task<ActionResult<AuthResponseDto>> Login(LoginDto dto)
     {
         var usuario = await _context.Usuarios
-        .Include(u => u.Cliente)
-        .FirstOrDefaultAsync(e => e.Email == dto.Email);
-
-        var existe = await _context.Usuarios
+            .Include(u => u.Cliente)
             .FirstOrDefaultAsync(e => e.Email == dto.Email);
-        if (existe == null) return BadRequest("El email no está registrado en la página");
 
-        var hash = BCrypt.Net.BCrypt.Verify(dto.Password, existe.PasswordHash);
+        if (usuario == null) return BadRequest("El email no está registrado en la página");
+
+        var hash = BCrypt.Net.BCrypt.Verify(dto.Password, usuario.PasswordHash);
 
         if (!hash) return BadRequest("contraseña incorrecta");
 
@@ -100,11 +97,12 @@ public class AuthController : ControllerBase
         {
             Email = dto.Email,
             Rol = RolUsuario.Cliente.ToString(),
-            Token = _tokenService.GenerarToken(existe),
+            Token = _tokenService.GenerarToken(usuario),
             ClienteId = usuario.Cliente?.Id ?? 0,
             Id = usuario.Id
-        }; return Ok(response);
-            
+        }; 
+        
+        return Ok(response);
     }
 
 
