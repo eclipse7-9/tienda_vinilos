@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Diagnostics;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MiPrimeraAPI.Data;
@@ -52,22 +53,35 @@ public class AdminController : ControllerBase
         });
     }
 
-   /** [Authorize(Roles = "Admin")] **/
+    /** [Authorize(Roles = "Admin")] **/
     [AllowAnonymous]
     [HttpGet("db-stats")]
-public IActionResult GetDbStats()
-{
-    // Simulamos una serie de tiempo para que la gráfica de Recharts tenga puntos que unir
-    var stats = new List<object>
+    public async Task<IActionResult> GetDbStats()
     {
-        new { time = DateTime.Now.AddMinutes(-25).ToString("HH:mm"), latency = 40 },
-        new { time = DateTime.Now.AddMinutes(-20).ToString("HH:mm"), latency = 55 },
-        new { time = DateTime.Now.AddMinutes(-15).ToString("HH:mm"), latency = 42 },
-        new { time = DateTime.Now.AddMinutes(-10).ToString("HH:mm"), latency = 80 },
-        new { time = DateTime.Now.AddMinutes(-5).ToString("HH:mm"), latency = 35 },
-        new { time = DateTime.Now.ToString("HH:mm"), latency = 48 }
-    };
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            // Ejecutamos una consulta simple para medir latencia real
+            await _context.Database.ExecuteSqlRawAsync("SELECT 1");
+            stopwatch.Stop();
+            var latency = stopwatch.ElapsedMilliseconds;
 
-    return Ok(stats);
-}
+            // Generamos datos para la gráfica de Recharts usando la latencia real
+            var stats = new List<object>
+            {
+                new { time = DateTime.Now.AddSeconds(-50).ToString("HH:mm:ss"), latency = Math.Max(5, latency + new Random().Next(-5, 5)) },
+                new { time = DateTime.Now.AddSeconds(-40).ToString("HH:mm:ss"), latency = Math.Max(5, latency + new Random().Next(-5, 5)) },
+                new { time = DateTime.Now.AddSeconds(-30).ToString("HH:mm:ss"), latency = Math.Max(5, latency + new Random().Next(-5, 5)) },
+                new { time = DateTime.Now.AddSeconds(-20).ToString("HH:mm:ss"), latency = Math.Max(5, latency + new Random().Next(-5, 5)) },
+                new { time = DateTime.Now.AddSeconds(-10).ToString("HH:mm:ss"), latency = Math.Max(5, latency + new Random().Next(-5, 5)) },
+                new { time = DateTime.Now.ToString("HH:mm:ss"), latency = latency }
+            };
+
+            return Ok(stats);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "DB connection error", details = ex.Message });
+        }
+    }
 }
