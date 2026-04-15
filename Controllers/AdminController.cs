@@ -53,14 +53,20 @@ public class AdminController : ControllerBase
     }
 
     [Authorize(Roles = "Admin")]
-    [HttpGet("health-metrics")]
-public IActionResult GetTechnicalMetrics()
+    [HttpGet("db-stats")]
+public IActionResult GetDbStats()
 {
-    // Aquí podrías integrar los datos que OpenTelemetry está recolectando
-    return Ok(new {
-        dbStatus = "Online",
-        lastSlowQueryMs = 450, // Dato que vendría de tu Interceptor
-        activeConnections = 12
-    });
+    // Simulamos una serie de tiempo para que la gráfica de Recharts tenga puntos que unir
+    var stats = new List<object>
+    {
+        new { time = DateTime.Now.AddMinutes(-25).ToString("HH:mm"), latency = 40 },
+        new { time = DateTime.Now.AddMinutes(-20).ToString("HH:mm"), latency = 55 },
+        new { time = DateTime.Now.AddMinutes(-15).ToString("HH:mm"), latency = 42 },
+        new { time = DateTime.Now.AddMinutes(-10).ToString("HH:mm"), latency = 80 },
+        new { time = DateTime.Now.AddMinutes(-5).ToString("HH:mm"), latency = 35 },
+        new { time = DateTime.Now.ToString("HH:mm"), latency = 48 }
+    };
+
+    return Ok(stats);
 }
 }
