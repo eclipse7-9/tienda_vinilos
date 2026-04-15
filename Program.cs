@@ -97,22 +97,27 @@ builder.Services.AddOpenTelemetry()
         .AddConsoleExporter());
 
 var app = builder.Build();
-// Pipeline
 
-//middleware
+// 1. CORS DEBE SER LO PRIMERO. 
+// Esto responde a los navegadores antes de que el Middleware de Error o Auth intervengan.
 app.UseCors("FrontendPolicy");
+
+// 2. Middleware de error después de CORS
 app.UseMiddleware<ErrorMiddleware>();
 
-if (app.Environment.IsDevelopment() ||
-    app.Configuration["EnableSwagger"] == "true")
+// 3. Swagger y demás
+if (app.Environment.IsDevelopment() || app.Configuration["EnableSwagger"] == "true")
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
+
+// 4. Autenticación y Autorización
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
 
 app.Run();
