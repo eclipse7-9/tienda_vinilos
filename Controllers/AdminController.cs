@@ -128,16 +128,14 @@ public class AdminController : ControllerBase
                     l.CommandText,
                     l.DurationMs,
                     l.ExecutedAt,
-                    Resources = $"{l.DurationMs}ms" // Recurso por consulta
+                    Resources = $"{l.DurationMs}ms", // Recurso por consulta
+                    IntervalResources = _context.SqlLogs // Recurso total intervalo (redundante pero seguro para el front)
+                        .Where(x => x.ExecutedAt >= startTime && x.ExecutedAt < endTime)
+                        .Sum(x => x.DurationMs)
                 })
                 .ToListAsync();
 
-            return Ok(new {
-                interval = $"{startTime:HH:mm:ss} - {endTime:HH:mm:ss}",
-                totalQueries = logs.Count,
-                totalResources = logs.Sum(l => l.DurationMs),
-                logs
-            });
+            return Ok(logs);
         }
         catch (Exception ex)
         {
