@@ -61,29 +61,36 @@ public class AdminController : ControllerBase
         try
         {
             var now = DateTime.UtcNow;
-            var windowStart = now.AddMinutes(-2); // Últimos 2 minutos
+            var windowStart = now.AddMinutes(-30); // Ver últimas 10 bolas (30 min)
 
             var stats = await _context.SqlLogs
                 .Where(l => l.ExecutedAt > windowStart)
                 .ToListAsync();
 
             var groupedStats = stats
-                .GroupBy(l => new { 
-                    Hour = l.ExecutedAt.Hour, 
-                    Minute = l.ExecutedAt.Minute, 
-                    Second = (l.ExecutedAt.Second / 10) * 10 
+                .GroupBy(l => {
+                    var minutes = (l.ExecutedAt.Minute / 3) * 3;
+                    return new DateTime(l.ExecutedAt.Year, l.ExecutedAt.Month, l.ExecutedAt.Day, 
+                                     l.ExecutedAt.Hour, minutes, 0, DateTimeKind.Utc);
                 })
                 .Select(g => new {
-                    time = $"{g.Key.Hour:D2}:{g.Key.Minute:D2}:{g.Key.Second:D2}",
-                    latency = Math.Round(g.Average(l => l.DurationMs), 2)
+                    time = g.Key.ToString("HH:mm:ss"),
+                    latency = Math.Round(g.Average(l => l.DurationMs), 2),
+                    totalDuration = Math.Round(g.Sum(l => l.DurationMs), 2),
+                    queryCount = g.Count()
                 })
                 .OrderBy(x => x.time)
                 .ToList();
 
-            // Si no hay datos, devolvemos al menos el punto actual con 0
             if (!groupedStats.Any())
             {
-                groupedStats.Add(new { time = now.ToString("HH:mm:ss"), latency = 0.0 });
+                var currentBucket = (now.Minute / 3) * 3;
+                groupedStats.Add(new { 
+                    time = $"{now.Hour:D2}:{currentBucket:D2}:00", 
+                    latency = 0.0,
+                    totalDuration = 0.0,
+                    queryCount = 0
+                });
             }
 
             return Ok(groupedStats);
@@ -109,16 +116,28 @@ public class AdminController : ControllerBase
             var targetTime = new DateTime(now.Year, now.Month, now.Day, 
                 int.Parse(parts[0]), int.Parse(parts[1]), int.Parse(parts[2]), DateTimeKind.Utc);
             
-            var startTime = targetTime.AddSeconds(-5);
-            var endTime = targetTime.AddSeconds(15);
+            // Intervalo de 3 minutos exactos desde el inicio de la bola
+            var startTime = targetTime;
+            var endTime = targetTime.AddMinutes(3);
 
             var logs = await _context.SqlLogs
-                .Where(l => l.ExecutedAt >= startTime && l.ExecutedAt <= endTime)
+                .Where(l => l.ExecutedAt >= startTime && l.ExecutedAt < endTime)
                 .OrderByDescending(l => l.ExecutedAt)
-                .Take(50)
+                .Select(l => new {
+                    l.Id,
+                    l.CommandText,
+                    l.DurationMs,
+                    l.ExecutedAt,
+                    Resources = $"{l.DurationMs}ms" // Recurso por consulta
+                })
                 .ToListAsync();
 
-            return Ok(logs);
+            return Ok(new {
+                interval = $"{startTime:HH:mm:ss} - {endTime:HH:mm:ss}",
+                totalQueries = logs.Count,
+                totalResources = logs.Sum(l => l.DurationMs),
+                logs
+            });
         }
         catch (Exception ex)
         {
