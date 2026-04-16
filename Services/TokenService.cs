@@ -21,17 +21,22 @@ namespace MiPrimeraAPI.Services
             Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            var claims = new[]
+            var claims = new List<Claim>
             {
-            new Claim(ClaimTypes.Email, usuario.Email),
-            new Claim(ClaimTypes.Role, usuario.Rol.ToString()),
-            new Claim("id", usuario.Id.ToString())
-        };
+                new Claim(ClaimTypes.Email, usuario.Email),
+                new Claim(ClaimTypes.Role, usuario.Rol.ToString()),
+                new Claim("id", usuario.Id.ToString())
+            };
+
+            if (usuario.Cliente != null)
+            {
+                claims.Add(new Claim("clienteId", usuario.Cliente.Id.ToString()));
+            }
 
             var token = new JwtSecurityToken(
                 issuer: _config["Jwt:Issuer"],
                 audience: _config["Jwt:Audience"],
-                claims: claims,
+                claims: claims.ToList(),
                 expires: DateTime.Now.AddHours(8),
                 signingCredentials: creds
             );
