@@ -24,6 +24,7 @@ namespace MiPrimeraAPI.Data
         public DbSet<Direccion> Direcciones { get; set; }
         public DbSet<MetodoPago> MetodoPago { get; set; }
         public DbSet<SqlLog> SqlLogs { get; set; }
+        public DbSet<Notificacion> Notificaciones { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -3,6 +3,7 @@ using System;
 using MiPrimeraAPI.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MiPrimeraAPI.Migrations
 {
     [DbContext(typeof(MediaStoreContext))]
-    partial class MediaStoreContextModelSnapshot : ModelSnapshot
+    [Migration("20260416202417_AgregaNotificaciones")]
+    partial class AgregaNotificaciones
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

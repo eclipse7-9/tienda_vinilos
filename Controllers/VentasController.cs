@@ -124,6 +124,17 @@ public class VentasController : ControllerBase
         }
         venta.Total = total;
 
+        // Crear notificación
+        var notif = new Notificacion
+        {
+            ClienteId = venta.ClienteId,
+            Titulo = "🛍️ Compra exitosa",
+            Mensaje = $"Tu orden #{venta.Id} por ${total:N0} ha sido procesada.",
+            Fecha = DateTime.UtcNow,
+            Leida = false
+        };
+        _context.Notificaciones.Add(notif);
+
         await _context.SaveChangesAsync();
         return CreatedAtAction(nameof(GetById), new { id = venta.Id }, null);
     }
