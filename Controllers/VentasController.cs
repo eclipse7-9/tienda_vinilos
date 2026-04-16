@@ -80,10 +80,19 @@ public class VentasController : ControllerBase
         var cliente = await _context.Clientes.FindAsync(dto.ClienteId);
         if (cliente is null) return NotFound("Cliente no encontrado");
 
+        string metodoPagoNombre = dto.MetodoPago ?? "No especificado";
+        if (dto.MetodoPagoId.HasValue)
+        {
+            var mp = await _context.MetodoPago.FindAsync(dto.MetodoPagoId.Value);
+            if (mp != null) metodoPagoNombre = mp.Tipo;
+        }
+
         var venta = new Venta
         {
             ClienteId = dto.ClienteId,
-            MetodoPago = dto.MetodoPago,
+            MetodoPago = metodoPagoNombre,
+            MetodoPagoId = dto.MetodoPagoId,
+            DireccionId = dto.DireccionId,
             Estado = "Pendiente",
             Fecha = DateTime.UtcNow,
             Total = 0
