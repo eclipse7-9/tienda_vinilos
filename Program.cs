@@ -86,6 +86,8 @@ builder.Services.AddCors(options =>
     });
 });
 
+//Servicio de telemetría
+
 builder.Services.AddOpenTelemetry()
     .WithTracing(tracing => tracing
         .AddSource("MiPrimeraAPI")
@@ -95,6 +97,14 @@ builder.Services.AddOpenTelemetry()
         .AddSource("Npgsql") 
         // Añadimos esto para poder ver los resultados en la consola de Cloud Shell
         .AddConsoleExporter());
+
+//Servicio de Redis
+
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("RedisConnection");
+    options.InstanceName = "MediaStore_";
+});
 
 var app = builder.Build();
 
