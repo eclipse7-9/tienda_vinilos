@@ -28,6 +28,7 @@ namespace MiPrimeraAPI.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<VentaDetalle>().ToTable("VentaDetalle");
             modelBuilder.Entity<ProductoArtista>()
                 .HasKey(pa => new { pa.ProductoId, pa.ArtistaId });
 

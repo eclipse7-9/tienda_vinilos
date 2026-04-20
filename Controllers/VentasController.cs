@@ -1,12 +1,9 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using Microsoft.EntityFrameworkCore;
 using MiPrimeraAPI.Data;
-using MiPrimeraAPI.DTOs.Categoria;
 using MiPrimeraAPI.DTOs.Venta;
 using MiPrimeraAPI.Models;
-using System.Runtime.InteropServices;
 
 namespace MiPrimeraAPI.Controllers;
 
@@ -21,22 +18,20 @@ public class VentasController : ControllerBase
         _context = context;
     }
 
-    // GET
     [Authorize(Roles = "Admin,Empleado")]
     [HttpGet]
     public async Task<ActionResult<IEnumerable<VentaResponseDto>>> GetAll()
     {
         var ventas = await _context.Ventas.ToListAsync();
 
-        var response = ventas.Select(c => new VentaResponseDto
+        var response = ventas.Select(v => new VentaResponseDto
         {
-            Id = c.Id,
-            Fecha = c.Fecha,
-            Total = c.Total,
-            MetodoPago = c.MetodoPago,
-            Estado = c.Estado,
-
-            ClienteId = c.ClienteId
+            Id = v.Id,
+            Fecha = v.Fecha,
+            Total = v.Total,
+            MetodoPago = v.MetodoPago,
+            Estado = v.Estado,
+            ClienteId = v.ClienteId
         });
         return Ok(response);
     }
@@ -65,7 +60,7 @@ public class VentasController : ControllerBase
             Detalles = venta.Detalles.Select(d => new VentaDetalleResponseDto
             {
                 ProductoId = d.ProductoId,
-                TituloProducto = d.Producto.Titulo,
+                TituloProducto = d.Producto?.Titulo ?? "Desconocido",
                 Cantidad = d.Cantidad,
                 PrecioUnitario = d.PrecioUnitario,
                 Subtotal = d.Subtotal
@@ -77,75 +72,79 @@ public class VentasController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<VentaResponseDto>> Create(VentaCreateDto dto)
     {
-        var cliente = await _context.Clientes.FindAsync(dto.ClienteId);
-        if (cliente is null) return NotFound("Cliente no encontrado");
+        try {
+            var cliente = await _context.Clientes.FindAsync(dto.ClienteId);
+            if (cliente is null) return NotFound("Cliente no encontrado");
 
-        string metodoPagoNombre = dto.MetodoPago ?? "No especificado";
-        if (dto.MetodoPagoId.HasValue)
-        {
-            var mp = await _context.MetodoPago.FindAsync(dto.MetodoPagoId.Value);
-            if (mp != null) metodoPagoNombre = mp.Tipo;
-        }
-
-        var venta = new Venta
-        {
-            ClienteId = dto.ClienteId,
-            MetodoPago = metodoPagoNombre,
-            MetodoPagoId = dto.MetodoPagoId,
-            DireccionId = dto.DireccionId,
-            Estado = "Pendiente",
-            Fecha = DateTime.UtcNow,
-            Total = 0
-        };
-        _context.Ventas.Add(venta);
-
-        await _context.SaveChangesAsync();
-
-        decimal total = 0;
-
-        foreach (var detalleDto in dto.Detalles)
-        {
-            var producto = await _context.Productos.FindAsync(detalleDto.ProductoId);
-            if (producto is null) return NotFound($"Producto no encontrado/producto agotado");
-
-            var inventario = await _context.Inventarios.
-                FirstOrDefaultAsync(i => i.ProductoId == detalleDto.ProductoId);
-            if (inventario is null || inventario.StockDisponible < detalleDto.Cantidad)
-                return BadRequest("Stock insuficiente");
-
-            //subtotal
-
-            var subtotal = detalleDto.Cantidad * producto.Precio;
-
-            var detalle = new VentaDetalle
+            string metodoPagoNombre = dto.MetodoPago ?? "No especificado";
+            if (dto.MetodoPagoId.HasValue)
             {
-                VentaId = venta.Id,
-                ProductoId = detalleDto.ProductoId,
-                Cantidad = detalleDto.Cantidad,
-                PrecioUnitario = producto.Precio,
-                Subtotal = subtotal
+                var mp = await _context.MetodoPago.FindAsync(dto.MetodoPagoId.Value);
+                if (mp != null) metodoPagoNombre = mp.Tipo;
+            }
+
+            var venta = new Venta
+            {
+                ClienteId = dto.ClienteId,
+                MetodoPago = metodoPagoNombre,
+                MetodoPagoId = dto.MetodoPagoId,
+                DireccionId = dto.DireccionId,
+                Estado = "Pendiente",
+                Fecha = DateTime.UtcNow,
+                Total = 0
             };
-            _context.VentaDetalles.Add(detalle);
+            _context.Ventas.Add(venta);
+            await _context.SaveChangesAsync();
 
-            inventario.StockDisponible -= detalleDto.Cantidad;
-            inventario.StockTotal -= detalleDto.Cantidad;
-            total += subtotal;  
+            decimal total = 0;
+
+            foreach (var detalleDto in dto.Detalles)
+            {
+                var producto = await _context.Productos.FindAsync(detalleDto.ProductoId);
+                if (producto is null) return NotFound($"Producto ID {detalleDto.ProductoId} no encontrado");
+
+                var inventario = await _context.Inventarios.
+                    FirstOrDefaultAsync(i => i.ProductoId == detalleDto.ProductoId);
+                
+                if (inventario is null) return BadRequest($"Inventario no encontrado para el producto {producto.Titulo}");
+                if (inventario.StockDisponible < detalleDto.Cantidad)
+                    return BadRequest($"Stock insuficiente para {producto.Titulo}. Disponible: {inventario.StockDisponible}");
+
+                var subtotal = detalleDto.Cantidad * producto.Precio;
+
+                var detalle = new VentaDetalle
+                {
+                    VentaId = venta.Id,
+                    ProductoId = detalleDto.ProductoId,
+                    Cantidad = detalleDto.Cantidad,
+                    PrecioUnitario = producto.Precio,
+                    Subtotal = subtotal
+                };
+                _context.VentaDetalles.Add(detalle);
+
+                inventario.StockDisponible -= detalleDto.Cantidad;
+                inventario.StockTotal -= detalleDto.Cantidad;
+                total += subtotal;  
+            }
+            
+            venta.Total = total;
+
+            // Crear notificación
+            var notif = new Notificacion
+            {
+                ClienteId = venta.ClienteId,
+                Titulo = "🛍️ Compra exitosa",
+                Mensaje = $"Tu orden #{venta.Id} por ${total:N0} ha sido procesada.",
+                Fecha = DateTime.UtcNow,
+                Leida = false
+            };
+            _context.Notificaciones.Add(notif);
+
+            await _context.SaveChangesAsync();
+            return CreatedAtAction(nameof(GetById), new { id = venta.Id }, null);
+        } catch (Exception ex) {
+            return StatusCode(500, new { error = ex.Message, inner = ex.InnerException?.Message });
         }
-        venta.Total = total;
-
-        // Crear notificación
-        var notif = new Notificacion
-        {
-            ClienteId = venta.ClienteId,
-            Titulo = "🛍️ Compra exitosa",
-            Mensaje = $"Tu orden #{venta.Id} por ${total:N0} ha sido procesada.",
-            Fecha = DateTime.UtcNow,
-            Leida = false
-        };
-        _context.Notificaciones.Add(notif);
-
-        await _context.SaveChangesAsync();
-        return CreatedAtAction(nameof(GetById), new { id = venta.Id }, null);
     }
 
     [Authorize]
@@ -170,7 +169,7 @@ public class VentasController : ControllerBase
             Detalles = v.Detalles.Select(d => new VentaDetalleResponseDto
             {
                 ProductoId = d.ProductoId,
-                TituloProducto = d.Producto.Titulo,
+                TituloProducto = d.Producto?.Titulo ?? "Desconocido",
                 Cantidad = d.Cantidad,
                 PrecioUnitario = d.PrecioUnitario,
                 Subtotal = d.Subtotal
@@ -179,6 +178,4 @@ public class VentasController : ControllerBase
 
         return Ok(response);
     }
-
-
 }
