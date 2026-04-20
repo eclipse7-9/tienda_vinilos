@@ -18,5 +18,7 @@
 
         //relación 1:1 con Inventario
         public Inventario Inventario { get; set; } = null!;
+
+        public bool EstaActivo { get; set; } = true;
     }
 }

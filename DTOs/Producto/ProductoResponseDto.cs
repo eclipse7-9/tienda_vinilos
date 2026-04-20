@@ -9,6 +9,7 @@
         public int AnioLanzamiento { get; set; }
         public string ImagenUrl { get; set; } = string.Empty;
         public int CategoriaId { get; set; }
+        public bool EstaActivo { get; set; }
 
         public CategoriaDetalleDto? Categoria { get; set; }
         public InventarioDto? Inventario { get; set; }

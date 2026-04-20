@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Productos - MediaStore</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <nav class="bg-indigo-600 text-white shadow-lg p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold"><i class="fas fa-compact-disc mr-2"></i>MediaStore Admin</h1>
+            <div class="space-x-4">
+                <a href="/admin" class="hover:text-indigo-200">Dashboard</a>
+                <button onclick="logout()" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded transition">Salir</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-3xl font-semibold text-gray-800">Gestión de Productos</h2>
+            <button onclick="openModal()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">
+                <i class="fas fa-plus mr-2"></i>Nuevo Producto
+            </button>
+        </div>
+
+        <!-- Tabla de Productos -->
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Producto</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoría</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Precio</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="productsTableBody" class="bg-white divide-y divide-gray-200">
+                    <!-- Filas cargadas por JS -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Modal para Crear/Editar -->
+    <div id="productModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl w-full max-w-2xl p-8 shadow-2xl">
+            <h3 id="modalTitle" class="text-2xl font-bold mb-6 text-indigo-600">Nuevo Producto</h3>
+            <form id="productForm" onsubmit="saveProduct(event)" class="grid grid-cols-2 gap-4">
+                <input type="hidden" id="productId">
+                <div class="col-span-2">
+                    <label class="block text-sm font-medium text-gray-700">Título</label>
+                    <input type="text" id="titulo" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 border p-2">
+                </div>
+                <div class="col-span-2">
+                    <label class="block text-sm font-medium text-gray-700">Descripción</label>
+                    <textarea id="descripcion" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 border p-2"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Precio</label>
+                    <input type="number" step="0.01" id="precio" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 border p-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Año Lanzamiento</label>
+                    <input type="number" id="anioLanzamiento" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 border p-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Imagen URL</label>
+                    <input type="text" id="imagenUrl" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 border p-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Categoría ID</label>
+                    <input type="number" id="categoriaId" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 border p-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Stock Inicial</label>
+                    <input type="number" id="stockInicial" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 border p-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Artistas (IDs separados por coma)</label>
+                    <input type="text" id="artistaIds" placeholder="e.g. 1,2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 border p-2">
+                </div>
+                <div class="col-span-2 flex justify-end space-x-3 mt-4">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition">Cancelar</button>
+                    <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition font-bold">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = '/api/AdminProductos';
+        const BASE_PRODUCTS_URL = '/api/Productos';
+        let token = localStorage.getItem('token');
+
+        if (!token) {
+            window.location.href = '/login.html'; // Ajustar según tu ruta de login
+        }
+
+        async function loadProducts() {
+            try {
+                const res = await fetch(API_URL, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.status === 401 || res.status === 403) logout();
+                
+                const products = await res.json();
+                const tbody = document.getElementById('productsTableBody');
+                tbody.innerHTML = '';
+
+                products.forEach(p => {
+                    const row = `
+                        <tr class="${p.estaActivo ? '' : 'bg-gray-50 opacity-60'}">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${p.id}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="h-10 w-10 flex-shrink-0">
+                                        <img class="h-10 w-10 rounded-full object-cover" src="${p.imagenUrl || 'https://via.placeholder.com/150'}" alt="">
+                                    </div>
+                                    <div class="ml-4">
+                                        <div class="text-sm font-medium text-gray-900">${p.titulo}</div>
+                                        <div class="text-xs text-gray-500">${p.artistas.map(a => a.nombre).join(', ')}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${p.categoria?.nombre || 'N/A'}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-bold">$${p.precio}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${p.inventario?.stockDisponible || 0}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${p.estaActivo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                    ${p.estaActivo ? 'Activo' : 'Inactivo'}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                                <button onclick="editProduct(${JSON.stringify(p).replace(/"/g, '&quot;')})" class="text-indigo-600 hover:text-indigo-900"><i class="fas fa-edit"></i></button>
+                                <button onclick="toggleStatus(${p.id})" class="${p.estaActivo ? 'text-orange-600' : 'text-green-600'} hover:opacity-75">
+                                    <i class="fas ${p.estaActivo ? 'fa-ban' : 'fa-check-circle'}"></i>
+                                </button>
+                                <button onclick="deleteProduct(${p.id})" class="text-red-600 hover:text-red-900"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+            } catch (err) {
+                console.error('Error:', err);
+            }
+        }
+
+        async function saveProduct(e) {
+            e.preventDefault();
+            const id = document.getElementById('productId').value;
+            const data = {
+                titulo: document.getElementById('titulo').value,
+                descripcion: document.getElementById('descripcion').value,
+                precio: parseFloat(document.getElementById('precio').value),
+                anioLanzamiento: parseInt(document.getElementById('anioLanzamiento').value),
+                imagenUrl: document.getElementById('imagenUrl').value,
+                categoriaId: parseInt(document.getElementById('categoriaId').value),
+                stockInicial: parseInt(document.getElementById('stockInicial').value || 0),
+                artistaIds: document.getElementById('artistaIds').value.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n))
+            };
+
+            const url = id ? `${BASE_PRODUCTS_URL}/${id}` : BASE_PRODUCTS_URL;
+            const method = id ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method: method,
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(data)
+            });
+
+            if (res.ok) {
+                closeModal();
+                loadProducts();
+            } else {
+                alert('Error al guardar producto');
+            }
+        }
+
+        async function toggleStatus(id) {
+            const res = await fetch(`${API_URL}/${id}/toggle`, {
+                method: 'PATCH',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) loadProducts();
+        }
+
+        async function deleteProduct(id) {
+            if (!confirm('¿Seguro que deseas eliminar este producto?')) return;
+            const res = await fetch(`${BASE_PRODUCTS_URL}/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) loadProducts();
+        }
+
+        function openModal(p = null) {
+            document.getElementById('modalTitle').innerText = p ? 'Editar Producto' : 'Nuevo Producto';
+            document.getElementById('productId').value = p ? p.id : '';
+            document.getElementById('titulo').value = p ? p.titulo : '';
+            document.getElementById('descripcion').value = p ? p.descripcion : '';
+            document.getElementById('precio').value = p ? p.precio : '';
+            document.getElementById('anioLanzamiento').value = p ? p.anioLanzamiento : '';
+            document.getElementById('imagenUrl').value = p ? p.imagenUrl : '';
+            document.getElementById('categoriaId').value = p ? p.categoriaId : '';
+            document.getElementById('stockInicial').value = p ? (p.inventario?.stockDisponible || 0) : 0;
+            document.getElementById('artistaIds').value = p ? '' : ''; // Opcional cargar artistas IDs
+            
+            document.getElementById('productModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('productModal').classList.add('hidden');
+            document.getElementById('productForm').reset();
+        }
+
+        function editProduct(p) {
+            openModal(p);
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/login.html';
+        }
+
+        loadProducts();
+    </script>
+</body>
+</html>

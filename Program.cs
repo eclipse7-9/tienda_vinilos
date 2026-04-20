@@ -124,10 +124,19 @@ if (app.Environment.IsDevelopment() || app.Configuration["EnableSwagger"] == "tr
 
 app.UseHttpsRedirection();
 
+// Archivos estáticos
+app.UseStaticFiles();
+
 // 4. Autenticación y Autorización
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Redirección para el panel
+app.MapGet("/panel-productos", async context => {
+    context.Response.ContentType = "text/html";
+    await context.Response.SendFileAsync("wwwroot/panel-productos.html");
+});
 
 app.Run();
