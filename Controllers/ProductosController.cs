@@ -38,26 +38,44 @@ public class ProductosController : ControllerBase
         return Ok(response);
     }
 
-    [AllowAnonymous]
-    [HttpGet("{id}")]
+   [AllowAnonymous]
+[HttpGet("{id}")]
+public async Task<ActionResult<ProductoResponseDto>> GetById(int id)
+{
+    // Usamos .Include para traer los datos de las otras tablas
+    var producto = await _context.Productos
+        .Include(p => p.Categoria)
+        .Include(p => p.Inventario)
+        .Include(p => p.ProductoArtistas)
+            .ThenInclude(pa => pa.Artista)
+        .FirstOrDefaultAsync(p => p.Id == id);
 
-    public async Task<ActionResult<ProductoResponseDto>> GetById(int id)
+    if (producto is null) return NotFound();
+
+    return Ok(new ProductoResponseDto
     {
-        var producto = await _context.Productos.FindAsync(id);
-        if (producto is null) return NotFound();
-
-        return Ok(new ProductoResponseDto
-        {
-            Id = producto.Id,
-            Titulo = producto.Titulo,
-            Descripcion = producto.Descripcion,
-            Precio = producto.Precio,
-            AnioLanzamiento = producto.AnioLanzamiento,
-            ImagenUrl = producto.ImagenUrl,
-            CategoriaId = producto.CategoriaId
-        });
-
-    }
+        Id = producto.Id,
+        Titulo = producto.Titulo,
+        Descripcion = producto.Descripcion,
+        Precio = producto.Precio,
+        AnioLanzamiento = producto.AnioLanzamiento,
+        ImagenUrl = producto.ImagenUrl,
+        CategoriaId = producto.CategoriaId,
+        
+        // Mapeo de objetos relacionados
+        Categoria = producto.Categoria == null ? null : new CategoriaDetalleDto {
+            Nombre = producto.Categoria.Nombre,
+            PermitePrestamo = producto.Categoria.PermitePrestamo
+        },
+        Inventario = producto.Inventario == null ? null : new InventarioDto {
+            StockDisponible = producto.Inventario.StockDisponible,
+            StockDisponiblePrestamo = producto.Inventario.StockDisponiblePrestamo
+        },
+        Artistas = producto.ProductoArtistas.Select(pa => new ArtistaDto {
+            Nombre = pa.Artista.Nombre
+        }).ToList()
+    });
+}
 
 
     [Authorize(Roles = "Admin,Empleado")]
