@@ -21,5 +21,7 @@ namespace MiPrimeraAPI.DTOs.Producto
         public int CategoriaId { get; set; }
         public List<int> ArtistaIds { get; set; } = new();
         public int StockInicial { get; set; } = 0;
+        public int StockDisponible { get; set; } = 0;
+        public int StockDisponiblePrestamo { get; set; } = 0;
     }
 }

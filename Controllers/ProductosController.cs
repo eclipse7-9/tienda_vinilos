@@ -154,7 +154,10 @@ public async Task<ActionResult<ProductoResponseDto>> GetById(int id)
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, ProductoCreateDto dto)
     {
-        var producto = await _context.Productos.FindAsync(id);
+        var producto = await _context.Productos
+            .Include(p => p.Inventario)
+            .FirstOrDefaultAsync(p => p.Id == id);
+
         if (producto is null) return NotFound();
 
         producto.Titulo = dto.Titulo;
@@ -163,6 +166,13 @@ public async Task<ActionResult<ProductoResponseDto>> GetById(int id)
         producto.AnioLanzamiento = dto.AnioLanzamiento;
         producto.ImagenUrl = dto.ImagenUrl;
         producto.CategoriaId = dto.CategoriaId;
+
+        if (producto.Inventario != null)
+        {
+            producto.Inventario.StockDisponible = dto.StockDisponible;
+            producto.Inventario.StockDisponiblePrestamo = dto.StockDisponiblePrestamo;
+            producto.Inventario.StockTotal = dto.StockDisponible + producto.Inventario.StockEnPrestamo;
+        }
 
         var artistasActuales = _context.ProductoArtistas
             .Where(pa => pa.ProductoId == id);
@@ -202,7 +212,3 @@ public async Task<ActionResult<ProductoResponseDto>> GetById(int id)
 
     }
 }
-
-
-
-
