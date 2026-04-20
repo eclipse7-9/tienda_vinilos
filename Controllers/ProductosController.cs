@@ -23,7 +23,13 @@ public class ProductosController : ControllerBase
 
     public async Task<ActionResult<IEnumerable<ProductoResponseDto>>> GetAll()
     {
-        var productos = await _context.Productos.ToListAsync();
+        var productos = await _context.Productos
+            .Include(p => p.Categoria)
+            .Include(p => p.Inventario)
+            .Include(p => p.ProductoArtistas)
+                .ThenInclude(pa => pa.Artista)
+            .ToListAsync();
+
         var response = productos.Select(C => new ProductoResponseDto
         {
             Id = C.Id,
@@ -32,7 +38,22 @@ public class ProductosController : ControllerBase
             Precio = C.Precio,
             AnioLanzamiento = C.AnioLanzamiento,
             ImagenUrl = C.ImagenUrl,
-            CategoriaId = C.CategoriaId
+            CategoriaId = C.CategoriaId,
+
+            Categoria = C.Categoria == null ? null : new CategoriaDetalleDto
+            {
+                Nombre = C.Categoria.Nombre,
+                PermitePrestamo = C.Categoria.PermitePrestamo
+            },
+            Inventario = C.Inventario == null ? null : new InventarioDto
+            {
+                StockDisponible = C.Inventario.StockDisponible,
+                StockDisponiblePrestamo = C.Inventario.StockDisponiblePrestamo
+            },
+            Artistas = C.ProductoArtistas.Select(pa => new ArtistaDto
+            {
+                Nombre = pa.Artista.Nombre
+            }).ToList()
         });
 
         return Ok(response);
