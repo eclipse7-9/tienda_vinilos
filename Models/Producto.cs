@@ -1,4 +1,6 @@
-﻿namespace MiPrimeraAPI.Models
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace MiPrimeraAPI.Models
 {
     public class Producto
     {
@@ -19,6 +21,7 @@
         //relación 1:1 con Inventario
         public Inventario Inventario { get; set; } = null!;
 
+        [NotMapped]
         public bool EstaActivo { get; set; } = true;
     }
 }

@@ -26,7 +26,8 @@ namespace MiPrimeraAPI.Middleware
 
                 var response = new
                 {
-                    error = "Ocurrió un error interno en el servidor",
+                    error = ex.Message,
+                    innerError = ex.InnerException?.Message,
                     status = 500
                 };
 

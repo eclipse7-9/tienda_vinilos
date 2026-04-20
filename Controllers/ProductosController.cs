@@ -1,4 +1,3 @@
-﻿
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -8,97 +7,99 @@ using MiPrimeraAPI.Models;
 
 namespace MiPrimeraAPI.Controllers;
 
-
 [ApiController]
 [Route("api/[controller]")]
 public class ProductosController : ControllerBase
 {
     private readonly MediaStoreContext _context;
-    public ProductosController(MediaStoreContext Context)
+    public ProductosController(MediaStoreContext context)
     {
-        _context = Context;
+        _context = context;
     }
 
     [AllowAnonymous]
     [HttpGet]
-
     public async Task<ActionResult<IEnumerable<ProductoResponseDto>>> GetAll()
     {
-        var productos = await _context.Productos
+        try {
+            var productos = await _context.Productos
+                .Include(p => p.Categoria)
+                .Include(p => p.Inventario)
+                .Include(p => p.ProductoArtistas)
+                    .ThenInclude(pa => pa.Artista)
+                .ToListAsync();
+
+            var response = productos.Select(p => new ProductoResponseDto
+            {
+                Id = p.Id,
+                Titulo = p.Titulo ?? string.Empty,
+                Descripcion = p.Descripcion ?? string.Empty,
+                Precio = p.Precio,
+                AnioLanzamiento = p.AnioLanzamiento,
+                ImagenUrl = p.ImagenUrl ?? string.Empty,
+                CategoriaId = p.CategoriaId,
+                EstaActivo = p.EstaActivo,
+                Categoria = p.Categoria == null ? null : new CategoriaDetalleDto
+                {
+                    Nombre = p.Categoria.Nombre ?? "Sin Categoría",
+                    PermitePrestamo = p.Categoria.PermitePrestamo
+                },
+                Inventario = p.Inventario == null ? null : new InventarioDto
+                {
+                    StockDisponible = p.Inventario.StockDisponible,
+                    StockDisponiblePrestamo = p.Inventario.StockDisponiblePrestamo
+                },
+                Artistas = p.ProductoArtistas.Select(pa => new ArtistaDto
+                {
+                    Nombre = pa.Artista?.Nombre ?? "Desconocido"
+                }).ToList()
+            }).ToList();
+
+            return Ok(response);
+        } catch (Exception ex) {
+            return StatusCode(500, new { error = ex.Message, inner = ex.InnerException?.Message });
+        }
+    }
+
+    [AllowAnonymous]
+    [HttpGet("{id}")]
+    public async Task<ActionResult<ProductoResponseDto>> GetById(int id)
+    {
+        var producto = await _context.Productos
             .Include(p => p.Categoria)
             .Include(p => p.Inventario)
             .Include(p => p.ProductoArtistas)
                 .ThenInclude(pa => pa.Artista)
-            .ToListAsync();
+            .FirstOrDefaultAsync(p => p.Id == id);
 
-        var response = productos.Select(C => new ProductoResponseDto
+        if (producto is null) return NotFound();
+
+        return Ok(new ProductoResponseDto
         {
-            Id = C.Id,
-            Titulo = C.Titulo,
-            Descripcion = C.Descripcion,
-            Precio = C.Precio,
-            AnioLanzamiento = C.AnioLanzamiento,
-            ImagenUrl = C.ImagenUrl,
-            CategoriaId = C.CategoriaId,
-
-            Categoria = C.Categoria == null ? null : new CategoriaDetalleDto
+            Id = producto.Id,
+            Titulo = producto.Titulo ?? string.Empty,
+            Descripcion = producto.Descripcion ?? string.Empty,
+            Precio = producto.Precio,
+            AnioLanzamiento = producto.AnioLanzamiento,
+            ImagenUrl = producto.ImagenUrl ?? string.Empty,
+            CategoriaId = producto.CategoriaId,
+            EstaActivo = producto.EstaActivo,
+            Categoria = producto.Categoria == null ? null : new CategoriaDetalleDto
             {
-                Nombre = C.Categoria.Nombre,
-                PermitePrestamo = C.Categoria.PermitePrestamo
+                Nombre = producto.Categoria.Nombre ?? "Sin Categoría",
+                PermitePrestamo = producto.Categoria.PermitePrestamo
             },
-            Inventario = C.Inventario == null ? null : new InventarioDto
+            Inventario = producto.Inventario == null ? null : new InventarioDto
             {
-                StockDisponible = C.Inventario.StockDisponible,
-                StockDisponiblePrestamo = C.Inventario.StockDisponiblePrestamo
+                StockDisponible = producto.Inventario.StockDisponible,
+                StockDisponiblePrestamo = producto.Inventario.StockDisponiblePrestamo
             },
-            Artistas = C.ProductoArtistas.Select(pa => new ArtistaDto
+            Artistas = producto.ProductoArtistas.Select(pa => new ArtistaDto
             {
                 Nombre = pa.Artista?.Nombre ?? "Desconocido"
             }).ToList()
         });
-
-        return Ok(response);
     }
-
-   [AllowAnonymous]
-[HttpGet("{id}")]
-public async Task<ActionResult<ProductoResponseDto>> GetById(int id)
-{
-    // Usamos .Include para traer los datos de las otras tablas
-    var producto = await _context.Productos
-        .Include(p => p.Categoria)
-        .Include(p => p.Inventario)
-        .Include(p => p.ProductoArtistas)
-            .ThenInclude(pa => pa.Artista)
-        .FirstOrDefaultAsync(p => p.Id == id);
-
-    if (producto is null) return NotFound();
-
-    return Ok(new ProductoResponseDto
-    {
-        Id = producto.Id,
-        Titulo = producto.Titulo,
-        Descripcion = producto.Descripcion,
-        Precio = producto.Precio,
-        AnioLanzamiento = producto.AnioLanzamiento,
-        ImagenUrl = producto.ImagenUrl,
-        CategoriaId = producto.CategoriaId,
-        
-        // Mapeo de objetos relacionados
-        Categoria = producto.Categoria == null ? null : new CategoriaDetalleDto {
-            Nombre = producto.Categoria.Nombre,
-            PermitePrestamo = producto.Categoria.PermitePrestamo
-        },
-        Inventario = producto.Inventario == null ? null : new InventarioDto {
-            StockDisponible = producto.Inventario.StockDisponible,
-            StockDisponiblePrestamo = producto.Inventario.StockDisponiblePrestamo
-        },
-        Artistas = producto.ProductoArtistas.Select(pa => new ArtistaDto {
-            Nombre = pa.Artista.Nombre
-        }).ToList()
-    });
-}
-
 
     [Authorize(Roles = "Admin,Empleado")]
     [HttpPost]
@@ -112,6 +113,7 @@ public async Task<ActionResult<ProductoResponseDto>> GetById(int id)
             AnioLanzamiento = dto.AnioLanzamiento,
             ImagenUrl = dto.ImagenUrl,
             CategoriaId = dto.CategoriaId,
+            EstaActivo = true
         };
 
         _context.Productos.Add(producto);
@@ -122,94 +124,24 @@ public async Task<ActionResult<ProductoResponseDto>> GetById(int id)
             ProductoId = producto.Id,
             StockTotal = dto.StockInicial,
             StockDisponible = dto.StockInicial,
-            StockDisponiblePrestamo = dto.StockInicial,
-            StockEnPrestamo = 0,
+            StockDisponiblePrestamo = dto.StockDisponiblePrestamo,
             StockMinimo = 5
         };
         _context.Inventarios.Add(inventario);
 
-        var productoArtistas = dto.ArtistaIds.Select(artistaId => new ProductoArtista
+        if (dto.ArtistaIds != null)
         {
-            ProductoId = producto.Id,
-            ArtistaId = artistaId
-        }).ToList();
-
-        _context.ProductoArtistas.AddRange(productoArtistas);
-        await _context.SaveChangesAsync();
-
-        var response = new ProductoResponseDto
-        {
-            Id = producto.Id,
-            Titulo = producto.Titulo,
-            Descripcion = producto.Descripcion,
-            Precio = producto.Precio,
-            AnioLanzamiento = producto.AnioLanzamiento,
-            ImagenUrl = producto.ImagenUrl,
-            CategoriaId = producto.CategoriaId
-        };
-
-        return CreatedAtAction(nameof(GetById), new { id = producto.Id }, response);
-    }
-
-    [Authorize(Roles = "Admin,Empleado")]
-    [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, ProductoCreateDto dto)
-    {
-        var producto = await _context.Productos
-            .Include(p => p.Inventario)
-            .FirstOrDefaultAsync(p => p.Id == id);
-
-        if (producto is null) return NotFound();
-
-        producto.Titulo = dto.Titulo;
-        producto.Descripcion = dto.Descripcion;
-        producto.Precio = dto.Precio;
-        producto.AnioLanzamiento = dto.AnioLanzamiento;
-        producto.ImagenUrl = dto.ImagenUrl;
-        producto.CategoriaId = dto.CategoriaId;
-
-        if (producto.Inventario != null)
-        {
-            producto.Inventario.StockDisponible = dto.StockDisponible;
-            producto.Inventario.StockDisponiblePrestamo = dto.StockDisponiblePrestamo;
-            producto.Inventario.StockTotal = dto.StockDisponible + producto.Inventario.StockEnPrestamo;
+            foreach (var artistaId in dto.ArtistaIds)
+            {
+                _context.ProductoArtistas.Add(new ProductoArtista
+                {
+                    ProductoId = producto.Id,
+                    ArtistaId = artistaId
+                });
+            }
         }
 
-        var artistasActuales = _context.ProductoArtistas
-            .Where(pa => pa.ProductoId == id);
-        _context.ProductoArtistas.RemoveRange(artistasActuales);
-
-        var artistasNuevos = dto.ArtistaIds.Select(artistaId => new ProductoArtista
-        {
-            ProductoId = id,
-            ArtistaId = artistaId
-        }).ToList();
-        _context.ProductoArtistas.AddRange(artistasNuevos);
-
         await _context.SaveChangesAsync();
-        return NoContent();
-    }
-
-    [Authorize(Roles = "Admin, Empleado")]
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
-    {
-        var producto = await _context.Productos.FindAsync(id);
-        if (producto is null) return NotFound();
-
-        var artistas = _context.ProductoArtistas
-            .Where(pa => pa.ProductoId == id);
-        _context.ProductoArtistas.RemoveRange(artistas);
-
-        var inventario = await _context.Inventarios
-            .FirstOrDefaultAsync(i => i.ProductoId == id);
-        if (inventario is not null)
-            _context.Inventarios.Remove(inventario);
-
-        
-        _context.Productos.Remove(producto);
-        await _context.SaveChangesAsync();
-        return NoContent();
-
+        return CreatedAtAction(nameof(GetById), new { id = producto.Id }, null);
     }
 }
