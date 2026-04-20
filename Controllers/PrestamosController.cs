@@ -76,7 +76,7 @@ public class PrestamosController : ControllerBase
 
     [Authorize]
     [HttpGet("cliente/{clienteId}")]
-    public async Task<IActionResult> GetByCliente(int clienteId)
+    public async Task<ActionResult<IEnumerable<PrestamoResponseDto>>> GetByCliente(int clienteId)
     {
         var prestamos = await _context.Prestamos
             .Include(p => p.Detalles)
@@ -84,7 +84,26 @@ public class PrestamosController : ControllerBase
             .Where(p => p.ClienteId == clienteId)
             .OrderByDescending(p => p.FechaPrestamo)
             .ToListAsync();
-        return Ok(prestamos);
+
+        var response = prestamos.Select(p => new PrestamoResponseDto
+        {
+            Id = p.Id,
+            FechaPrestamo = p.FechaPrestamo,
+            FechaDevolucionEsperada = p.FechaDevolucionEsperada,
+            FechaDevolucionReal = p.FechaDevolucionReal,
+            Estado = p.Estado.ToString(),
+            Multa = p.Multa,
+            ClienteId = p.ClienteId,
+            Detalles = p.Detalles.Select(d => new PrestamoDetalleResponseDto
+            {
+                Id = d.Id,
+                ProductoId = d.ProductoId,
+                TituloProducto = d.Producto.Titulo,
+                Observaciones = d.Observaciones
+            }).ToList()
+        }).ToList();
+
+        return Ok(response);
     }
 
     [Authorize]
