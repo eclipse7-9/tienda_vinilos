@@ -51,7 +51,7 @@ public class AdminProductosController : ControllerBase
             },
             Artistas = p.ProductoArtistas.Select(pa => new ArtistaDto
             {
-                Nombre = pa.Artista.Nombre
+                Nombre = pa.Artista?.Nombre ?? "Desconocido"
             }).ToList()
         });
 

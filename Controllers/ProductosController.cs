@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MiPrimeraAPI.Data;
@@ -52,7 +53,7 @@ public class ProductosController : ControllerBase
             },
             Artistas = C.ProductoArtistas.Select(pa => new ArtistaDto
             {
-                Nombre = pa.Artista.Nombre
+                Nombre = pa.Artista?.Nombre ?? "Desconocido"
             }).ToList()
         });
 

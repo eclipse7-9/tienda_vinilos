@@ -125,7 +125,7 @@ public class VentasController : ControllerBase
                 PrecioUnitario = producto.Precio,
                 Subtotal = subtotal
             };
-            _context.VentasDetalle.Add(detalle);
+            _context.VentaDetalles.Add(detalle);
 
             inventario.StockDisponible -= detalleDto.Cantidad;
             inventario.StockTotal -= detalleDto.Cantidad;
@@ -150,17 +150,34 @@ public class VentasController : ControllerBase
 
     [Authorize]
     [HttpGet("cliente/{clienteId}")]
-
-    public async Task<IActionResult> GetByCliente(int clienteId)
+    public async Task<ActionResult<IEnumerable<VentaResponseDto>>> GetByCliente(int clienteId)
     {
         var ventas = await _context.Ventas
             .Include(v => v.Detalles)
                 .ThenInclude(d => d.Producto)
-                .Where (v => v.ClienteId == clienteId)
-                .OrderByDescending(v => v.Fecha)
-                .ToListAsync();
+            .Where(v => v.ClienteId == clienteId)
+            .OrderByDescending(v => v.Fecha)
+            .ToListAsync();
 
-        return Ok(ventas);
+        var response = ventas.Select(v => new VentaResponseDto
+        {
+            Id = v.Id,
+            Fecha = v.Fecha,
+            Total = v.Total,
+            MetodoPago = v.MetodoPago,
+            Estado = v.Estado,
+            ClienteId = v.ClienteId,
+            Detalles = v.Detalles.Select(d => new VentaDetalleResponseDto
+            {
+                ProductoId = d.ProductoId,
+                TituloProducto = d.Producto.Titulo,
+                Cantidad = d.Cantidad,
+                PrecioUnitario = d.PrecioUnitario,
+                Subtotal = d.Subtotal
+            }).ToList()
+        }).ToList();
+
+        return Ok(response);
     }
 
 

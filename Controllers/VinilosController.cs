@@ -4,6 +4,7 @@ using System.Text.Json;
 using MiPrimeraAPI.Data;
 using MiPrimeraAPI.Models;
 using Microsoft.EntityFrameworkCore;
+using MiPrimeraAPI.DTOs.Producto;
 
 namespace MiPrimeraAPI.Controllers
 {
@@ -30,21 +31,52 @@ namespace MiPrimeraAPI.Controllers
 
             if (vinilosCached != null)
             {
-                var vinilos = JsonSerializer.Deserialize<List<Producto>>(vinilosCached);
+                var vinilos = JsonSerializer.Deserialize<List<ProductoResponseDto>>(vinilosCached);
                 return Ok(vinilos);
             }
 
             // 2. Si no está en Redis, vamos a la DB
-            var vinilosDb = await _context.Productos.ToListAsync();
+            var productos = await _context.Productos
+                .Include(p => p.Categoria)
+                .Include(p => p.Inventario)
+                .Include(p => p.ProductoArtistas)
+                    .ThenInclude(pa => pa.Artista)
+                .ToListAsync();
+
+            var response = productos.Select(p => new ProductoResponseDto
+            {
+                Id = p.Id,
+                Titulo = p.Titulo,
+                Descripcion = p.Descripcion,
+                Precio = p.Precio,
+                AnioLanzamiento = p.AnioLanzamiento,
+                ImagenUrl = p.ImagenUrl,
+                CategoriaId = p.CategoriaId,
+                EstaActivo = p.EstaActivo,
+                Categoria = p.Categoria == null ? null : new CategoriaDetalleDto
+                {
+                    Nombre = p.Categoria.Nombre,
+                    PermitePrestamo = p.Categoria.PermitePrestamo
+                },
+                Inventario = p.Inventario == null ? null : new InventarioDto
+                {
+                    StockDisponible = p.Inventario.StockDisponible,
+                    StockDisponiblePrestamo = p.Inventario.StockDisponiblePrestamo
+                },
+                Artistas = p.ProductoArtistas.Select(pa => new ArtistaDto
+                {
+                    Nombre = pa.Artista?.Nombre ?? "Desconocido"
+                }).ToList()
+            }).ToList();
 
             // 3. Guardar en Redis (expira en 10 min)
             var options = new DistributedCacheEntryOptions()
                 .SetAbsoluteExpiration(TimeSpan.FromMinutes(10));
 
-            var serializedVinilos = JsonSerializer.Serialize(vinilosDb);
+            var serializedVinilos = JsonSerializer.Serialize(response);
             await _cache.SetStringAsync(cacheKey, serializedVinilos, options);
 
-            return Ok(vinilosDb);
+            return Ok(response);
         }
     }
 }
