@@ -4,6 +4,7 @@ namespace MiPrimeraAPI.DTOs.Producto
 {
     public class ProductoCreateDto
     {
+        public int? Id { get; set; }
         [MaxLength(120)]
         [Required(ErrorMessage = "El título del producto no puede estar vacío")]
         public string Titulo { get; set; } = string.Empty;
