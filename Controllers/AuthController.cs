@@ -71,7 +71,7 @@ public class AuthController : ControllerBase
         var response = new AuthResponseDto
         {
             Email = nuevoUsuario.Email,
-            Rol = nuevoUsuario.Rol.ToString(),
+            Rol = Enum.GetName(typeof(RolUsuario), nuevoUsuario.Rol) ?? "Cliente",
             Token = _tokenService.GenerarToken(nuevoUsuario),
             ClienteId = usuarioConCliente?.Cliente?.Id ?? 0
         };
@@ -96,7 +96,7 @@ public class AuthController : ControllerBase
         var response = new AuthResponseDto
         {
             Email = dto.Email,
-            Rol = usuario.Rol.ToString(),
+            Rol = Enum.GetName(typeof(RolUsuario), usuario.Rol) ?? "Cliente",
             Token = _tokenService.GenerarToken(usuario),
             ClienteId = usuario.Cliente?.Id ?? 0,
             Id = usuario.Id
