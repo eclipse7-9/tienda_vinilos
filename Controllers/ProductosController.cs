@@ -144,4 +144,59 @@ public class ProductosController : ControllerBase
         await _context.SaveChangesAsync();
         return CreatedAtAction(nameof(GetById), new { id = producto.Id }, null);
     }
+
+    [Authorize(Roles = "Admin,Empleado")]
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, ProductoCreateDto dto)
+    {
+        var producto = await _context.Productos
+            .Include(p => p.Inventario)
+            .Include(p => p.ProductoArtistas)
+            .FirstOrDefaultAsync(p => p.Id == id);
+
+        if (producto == null) return NotFound();
+
+        producto.Titulo = dto.Titulo;
+        producto.Descripcion = dto.Descripcion;
+        producto.Precio = dto.Precio;
+        producto.AnioLanzamiento = dto.AnioLanzamiento;
+        producto.ImagenUrl = dto.ImagenUrl;
+        producto.CategoriaId = dto.CategoriaId;
+
+        if (producto.Inventario != null)
+        {
+            producto.Inventario.StockDisponible = dto.StockInicial;
+            producto.Inventario.StockDisponiblePrestamo = dto.StockDisponiblePrestamo;
+        }
+
+        // Actualizar artistas
+        _context.ProductoArtistas.RemoveRange(producto.ProductoArtistas);
+        if (dto.ArtistaIds != null)
+        {
+            foreach (var artistaId in dto.ArtistaIds)
+            {
+                _context.ProductoArtistas.Add(new ProductoArtista
+                {
+                    ProductoId = producto.Id,
+                    ArtistaId = artistaId
+                });
+            }
+        }
+
+        await _context.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [Authorize(Roles = "Admin,Empleado")]
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var producto = await _context.Productos.FindAsync(id);
+        if (producto == null) return NotFound();
+
+        // En lugar de borrar físicamente, desactivamos
+        producto.EstaActivo = false;
+        await _context.SaveChangesAsync();
+        return NoContent();
+    }
 }

@@ -8,7 +8,7 @@ namespace MiPrimeraAPI.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin,Empleado")]
 public class AdminController : ControllerBase
 {
     private readonly MediaStoreContext _context;

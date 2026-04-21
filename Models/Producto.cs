@@ -21,7 +21,6 @@ namespace MiPrimeraAPI.Models
         //relación 1:1 con Inventario
         public Inventario Inventario { get; set; } = null!;
 
-        [NotMapped]
         public bool EstaActivo { get; set; } = true;
     }
 }
