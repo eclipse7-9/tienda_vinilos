@@ -26,13 +26,21 @@ namespace MiPrimeraAPI.Controllers
         {
             string cacheKey = "lista_vinilos";
             
-            // 1. Intentar obtener de Redis
-            var vinilosCached = await _cache.GetStringAsync(cacheKey);
-
-            if (vinilosCached != null)
+            try 
             {
-                var vinilos = JsonSerializer.Deserialize<List<ProductoResponseDto>>(vinilosCached);
-                return Ok(vinilos);
+                // 1. Intentar obtener de Redis
+                var vinilosCached = await _cache.GetStringAsync(cacheKey);
+
+                if (vinilosCached != null)
+                {
+                    var vinilos = JsonSerializer.Deserialize<List<ProductoResponseDto>>(vinilosCached);
+                    return Ok(vinilos);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Redis Error] No se pudo leer de la cache: {ex.Message}");
+                // Continuamos a la DB si falla Redis
             }
 
             // 2. Si no está en Redis, vamos a la DB
@@ -69,12 +77,19 @@ namespace MiPrimeraAPI.Controllers
                 }).ToList()
             }).ToList();
 
-            // 3. Guardar en Redis (expira en 10 min)
-            var options = new DistributedCacheEntryOptions()
-                .SetAbsoluteExpiration(TimeSpan.FromMinutes(10));
+            try
+            {
+                // 3. Guardar en Redis (expira en 10 min)
+                var options = new DistributedCacheEntryOptions()
+                    .SetAbsoluteExpiration(TimeSpan.FromMinutes(10));
 
-            var serializedVinilos = JsonSerializer.Serialize(response);
-            await _cache.SetStringAsync(cacheKey, serializedVinilos, options);
+                var serializedVinilos = JsonSerializer.Serialize(response);
+                await _cache.SetStringAsync(cacheKey, serializedVinilos, options);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Redis Error] No se pudo guardar en la cache: {ex.Message}");
+            }
 
             return Ok(response);
         }
