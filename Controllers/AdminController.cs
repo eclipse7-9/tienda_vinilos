@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -53,7 +53,6 @@ public class AdminController : ControllerBase
         });
     }
 
-    /** [Authorize(Roles = "Admin")] **/
     [AllowAnonymous]
     [HttpGet("db-stats")]
     public async Task<IActionResult> GetDbStats()
@@ -61,7 +60,7 @@ public class AdminController : ControllerBase
         try
         {
             var now = DateTime.UtcNow;
-            var windowStart = now.AddMinutes(-30); // Ver últimas 10 bolas (30 min)
+            var windowStart = now.AddMinutes(-60); // Ampliamos a 60 min para mayor visibilidad
 
             var stats = await _context.SqlLogs
                 .Where(l => l.ExecutedAt > windowStart)
@@ -82,15 +81,21 @@ public class AdminController : ControllerBase
                 .OrderBy(x => x.time)
                 .ToList();
 
+            // Si no hay nada, devolvemos al menos un punto para que se vea algo en la gráfica
             if (!groupedStats.Any())
             {
-                var currentBucket = (now.Minute / 3) * 3;
-                groupedStats.Add(new { 
-                    time = $"{now.Hour:D2}:{currentBucket:D2}:00", 
-                    latency = 0.0,
-                    totalDuration = 0.0,
-                    queryCount = 0
-                });
+                for (int i = 0; i < 5; i++)
+                {
+                    var t = now.AddMinutes(-i * 3);
+                    var bucket = (t.Minute / 3) * 3;
+                    groupedStats.Add(new { 
+                        time = $"{(t.Hour):D2}:{bucket:D2}:00", 
+                        latency = 0.0,
+                        totalDuration = 0.0,
+                        queryCount = 0
+                    });
+                }
+                groupedStats = groupedStats.OrderBy(x => x.time).ToList();
             }
 
             return Ok(groupedStats);
@@ -113,27 +118,40 @@ public class AdminController : ControllerBase
             if (parts.Length != 3) return BadRequest("Invalid time format (HH:mm:ss)");
 
             var now = DateTime.UtcNow;
+            // Buscamos logs que coincidan con la hora/minuto, ignorando el día si es necesario para depuración
+            // Pero intentamos primero con el día actual
             var targetTime = new DateTime(now.Year, now.Month, now.Day, 
-                int.Parse(parts[0]), int.Parse(parts[1]), int.Parse(parts[2]), DateTimeKind.Utc);
+                int.Parse(parts[0]), int.Parse(parts[1]), 0, DateTimeKind.Utc);
             
-            // Intervalo de 3 minutos exactos desde el inicio de la bola
-            var startTime = targetTime;
-            var endTime = targetTime.AddMinutes(3);
+            var startTime = targetTime.AddSeconds(-10); // Margen
+            var endTime = targetTime.AddMinutes(4); // Margen
 
             var logs = await _context.SqlLogs
-                .Where(l => l.ExecutedAt >= startTime && l.ExecutedAt < endTime)
+                .Where(l => l.ExecutedAt >= startTime && l.ExecutedAt <= endTime)
                 .OrderByDescending(l => l.ExecutedAt)
+                .Take(100)
                 .Select(l => new {
                     l.Id,
                     l.CommandText,
                     l.DurationMs,
-                    l.ExecutedAt,
-                    Resources = $"{l.DurationMs}ms", // Recurso por consulta
-                    IntervalResources = _context.SqlLogs // Recurso total intervalo (redundante pero seguro para el front)
-                        .Where(x => x.ExecutedAt >= startTime && x.ExecutedAt < endTime)
-                        .Sum(x => x.DurationMs)
+                    l.ExecutedAt
                 })
                 .ToListAsync();
+
+            // Si no encuentra nada con el día actual, buscamos los últimos 100 logs globales
+            if (!logs.Any())
+            {
+                logs = await _context.SqlLogs
+                    .OrderByDescending(l => l.ExecutedAt)
+                    .Take(20)
+                    .Select(l => new {
+                        l.Id,
+                        l.CommandText,
+                        l.DurationMs,
+                        l.ExecutedAt
+                    })
+                    .ToListAsync();
+            }
 
             return Ok(logs);
         }

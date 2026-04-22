@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using System.Data.Common;
-using MiPrimeraAPI.Models;
+using System.Diagnostics;
 
 namespace MiPrimeraAPI.Data;
 
@@ -8,64 +8,51 @@ public class PerformanceInterceptor : DbCommandInterceptor
 {
     public override DbDataReader ReaderExecuted(DbCommand command, CommandExecutedEventData eventData, DbDataReader result)
     {
-        LogCommand(command, eventData);
+        LogToDb(command, eventData.Duration.TotalMilliseconds);
         return base.ReaderExecuted(command, eventData, result);
     }
 
     public override object? ScalarExecuted(DbCommand command, CommandExecutedEventData eventData, object? result)
     {
-        LogCommand(command, eventData);
+        LogToDb(command, eventData.Duration.TotalMilliseconds);
         return base.ScalarExecuted(command, eventData, result);
     }
 
     public override int NonQueryExecuted(DbCommand command, CommandExecutedEventData eventData, int result)
     {
-        LogCommand(command, eventData);
+        LogToDb(command, eventData.Duration.TotalMilliseconds);
         return base.NonQueryExecuted(command, eventData, result);
     }
 
-    private void LogCommand(DbCommand command, CommandExecutedEventData eventData)
+    private void LogToDb(DbCommand command, double durationMs)
     {
-        // Evitar bucle infinito al loguear la inserción de logs
-        if (command.CommandText.Contains("\"SqlLogs\"") || command.CommandText.Contains("SqlLogs"))
-        {
-            return;
-        }
+        var sql = command.CommandText;
+        if (sql.Contains("SqlLogs") || sql.Contains("INSERT INTO") && sql.Contains("@text")) return;
 
-        try
-        {
-            if (command.Connection == null) return;
-
-            using (var logCommand = command.Connection.CreateCommand())
+        Task.Run(async () => {
+            try 
             {
-                logCommand.CommandText = "INSERT INTO \"SqlLogs\" (\"CommandText\", \"DurationMs\", \"ExecutedAt\") VALUES (@text, @duration, @at)";
+                // Usamos una conexión nueva para no interferir con la transacción actual
+                // Obtenemos el connection string del comando original
+                var connString = command.Connection?.ConnectionString;
+                if (string.IsNullOrEmpty(connString)) return;
+
+                using var conn = new Npgsql.NpgsqlConnection(connString);
+                await conn.OpenAsync();
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "INSERT INTO \"SqlLogs\" (\"CommandText\", \"DurationMs\", \"ExecutedAt\") VALUES (@t, @d, @a)";
                 
-                var pText = logCommand.CreateParameter();
-                pText.ParameterName = "@text";
-                pText.Value = command.CommandText;
-                logCommand.Parameters.Add(pText);
-
-                var pDuration = logCommand.CreateParameter();
-                pDuration.ParameterName = "@duration";
-                pDuration.Value = eventData.Duration.TotalMilliseconds;
-                logCommand.Parameters.Add(pDuration);
-
-                var pAt = logCommand.CreateParameter();
-                pAt.ParameterName = "@at";
-                pAt.Value = DateTime.UtcNow;
-                logCommand.Parameters.Add(pAt);
-
-                if (logCommand.Connection != null && logCommand.Connection.State != System.Data.ConnectionState.Open)
-                {
-                    logCommand.Connection.Open();
-                }
-
-                logCommand.ExecuteNonQuery();
+                var p1 = cmd.CreateParameter(); p1.ParameterName = "@t"; p1.Value = sql; cmd.Parameters.Add(p1);
+                var p2 = cmd.CreateParameter(); p2.ParameterName = "@d"; p2.Value = durationMs; cmd.Parameters.Add(p2);
+                var p3 = cmd.CreateParameter(); p3.ParameterName = "@a"; p3.Value = DateTime.UtcNow; cmd.Parameters.Add(p3);
+                
+                await cmd.ExecuteNonQueryAsync();
             }
-        }
-        catch
-        {
-            // Fallback silencioso para no romper la ejecución principal
-        }
+            catch (Exception ex)
+            {
+                // Si falla, al menos lo vemos en la consola del server
+                Console.WriteLine($"[Interceptor Error] {ex.Message}");
+            }
+        });
     }
 }
